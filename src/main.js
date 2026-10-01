@@ -25,6 +25,7 @@ function header(path) {
     ["Work", "/work"],
     ["Services", "/services"],
     ["Studio", "/about"],
+    ["Contact", "/contact"],
   ];
   const links = navItems.map(([label, href]) => {
     const current = path === href ? ' aria-current="page"' : "";
@@ -37,7 +38,7 @@ function header(path) {
       <div class="shell header-inner">
         <a class="brand" href="/" data-link aria-label="AVENOX home">
           <span class="brand-name">AVENOX<span class="brand-mark" aria-hidden="true">/</span></span>
-          <span class="brand-tagline">WEB <i aria-hidden="true">•</i> AI <i aria-hidden="true">•</i> DIGITAL SYSTEMS</span>
+          <span class="brand-tagline">Web • AI • Digital Systems</span>
         </a>
         <nav class="primary-nav" id="primary-nav" aria-label="Primary navigation">
           ${links}
@@ -58,25 +59,19 @@ function footer() {
         <div class="footer-brand-block">
           <a class="brand brand--footer" href="/" data-link aria-label="AVENOX home">
             <span class="brand-name">AVENOX<span class="brand-mark" aria-hidden="true">/</span></span>
-            <span class="brand-tagline">WEB <i aria-hidden="true">•</i> AI <i aria-hidden="true">•</i> DIGITAL SYSTEMS</span>
           </a>
-          <p>Thoughtful digital work,<br />made with intent.</p>
+          <p>Web • AI • Digital Systems</p>
         </div>
-        <div class="footer-column">
-          <p class="footer-label">EXPLORE</p>
-          <a href="/work" data-link>Selected work</a>
+        <nav class="footer-navigation" aria-label="Footer navigation">
+          <a href="/work" data-link>Work</a>
           <a href="/services" data-link>Services</a>
-          <a href="/about" data-link>The studio</a>
-        </div>
-        <div class="footer-column">
-          <p class="footer-label">SAY HELLO</p>
-          <a href="/contact" data-link>Start a conversation <span aria-hidden="true">↗</span></a>
-        </div>
-        <a class="back-top" href="#top" data-scroll>BACK TO TOP <span aria-hidden="true">↑</span></a>
+          <a href="/about" data-link>Studio</a>
+          <a href="/contact" data-link>Contact</a>
+        </nav>
+        <a class="button button--dark footer-cta" href="/contact" data-link>START A PROJECT <span aria-hidden="true">↗</span></a>
       </div>
       <div class="shell footer-bottom">
-        <span>© <span id="year">${new Date().getFullYear()}</span> AVENOX</span>
-        <span>WEB <i aria-hidden="true">•</i> AI <i aria-hidden="true">•</i> DIGITAL SYSTEMS</span>
+        <span>© ${new Date().getFullYear()} AVENOX</span>
         <nav aria-label="Legal links">
           <a href="/privacy" data-link>Privacy</a>
           <a href="/cookies" data-link>Cookies</a>
@@ -86,112 +81,77 @@ function footer() {
     </footer>`;
 }
 
-function arrowLink(href, label, extraClass = "") {
-  return `<a class="text-link ${extraClass}" href="${escapeHtml(href)}" data-link>${label}<span aria-hidden="true">↗</span></a>`;
+function arrowLink(href, label, extraClass = "", ariaLabel = "") {
+  return `<a class="text-link ${extraClass}" href="${escapeHtml(href)}" data-link${ariaLabel ? ` aria-label="${escapeHtml(ariaLabel)}"` : ""}>${label}<span aria-hidden="true">↗</span></a>`;
 }
 
-function buildList() {
-  return `
-    <section class="build-section shell section-pad" aria-labelledby="build-title">
-      <div class="section-heading section-heading--split reveal">
-        <div>
-          <p class="eyebrow">A PRACTICE BUILT AROUND THE WORK</p>
-          <h2 class="section-title" id="build-title">WHAT WE BUILD</h2>
-        </div>
-        <p class="section-intro">Four connected disciplines. One considered approach to making digital things useful, clear and lasting.</p>
-      </div>
-      <div class="build-list">
-        ${SERVICES.map((service) => `
-          <a class="build-item reveal" href="/services#${service.slug}" data-link>
-            <span class="build-number">${service.number}</span>
-            <h3>${service.name}</h3>
-            <p>${service.summary}</p>
-            <span class="build-arrow" aria-hidden="true">↗</span>
-          </a>`).join("")}
-      </div>
-    </section>`;
-}
 
 function projectRow(project, index) {
   const visualFirst = index % 2 === 1;
   const figure = `
     <figure class="project-visual ${project.className} reveal">
       <img src="${project.image}" alt="${escapeHtml(project.alt)}" width="1600" height="1000" loading="lazy" decoding="async" />
-      <figcaption><span>${project.number} / ${project.visualLabel}</span><span aria-hidden="true">AVENOX</span></figcaption>
+      <figcaption>${escapeHtml(project.visualLabel)}</figcaption>
     </figure>`;
   const copy = `
     <div class="project-copy reveal">
-      <div class="project-meta"><span>${project.number.padStart(2, "0")}</span><span>${project.kind}</span></div>
-      <h3>${project.name}</h3>
+      <p class="project-meta"><span>${project.number}</span><span>${escapeHtml(project.kind)}</span></p>
+      <h3 id="project-${project.number}">${project.name}</h3>
       <p>${project.description}</p>
-      ${arrowLink(`/contact?${project.query}`, "DISCUSS A PROJECT LIKE THIS", "project-cta")}
+      ${arrowLink(`/contact?${project.query}`, "Discuss this project", "project-cta", `Start a conversation about ${project.name}`)}
     </div>`;
-  return `<article class="project-row${visualFirst ? " project-row--visual-first" : ""}" aria-label="${project.name}">${copy}${figure}</article>`;
+  return `<article class="project-row${visualFirst ? " project-row--visual-first" : ""}" aria-labelledby="project-${project.number}">${copy}${figure}</article>`;
 }
 
 function selectedWork({ compact = false } = {}) {
   const projects = compact ? PROJECTS.slice(0, 3) : PROJECTS;
   return `
     <section class="work-section shell section-pad" id="work" aria-labelledby="work-title">
-      <div class="section-heading section-heading--split reveal">
-        <div>
-          <p class="eyebrow">A SELECTION OF PRODUCT THINKING & DIGITAL CRAFT</p>
-          <h2 class="section-title" id="work-title">SELECTED WORK</h2>
-        </div>
-        <p class="section-intro">A few ideas taking shape across interfaces, digital experiences and the systems behind them.</p>
+      <div class="section-heading${compact ? " section-heading--split" : ""} reveal">
+        <h2 class="section-title" id="work-title">Selected work</h2>
+        ${compact ? `<p class="section-intro">A small archive of ideas taking shape across web, AI and digital products.</p>` : ""}
       </div>
       <div class="project-list">${projects.map(projectRow).join("")}</div>
-      ${compact ? `<div class="work-more">${arrowLink("/work", "VIEW ALL SELECTED WORK")}</div>` : ""}
-      <p class="work-disclaimer">Selected explorations. Interface and studio visuals are illustrative where noted; no client or outcome claims are implied.</p>
+      ${compact ? `<div class="work-more">${arrowLink("/work", "View all work")}</div>` : ""}
     </section>`;
 }
 
-function serviceList({ expandable = false, editorial = false } = {}) {
-  const homeLabels = [
-    ["DIGITAL FLAGSHIPS", "Clear structure, considered content and purposeful front-end craft for the web."],
-    ["AMBIENT INTELLIGENCE", "AI experiences that support a person’s judgment instead of competing with it."],
-    ["WORKFLOW ARCHITECTURE", "A more legible connection between the people, tools and steps behind everyday work."],
-    ["BESPOKE TOOLS & SYSTEMS", "Purpose-built software and interfaces for work that does not fit a standard template."],
-  ];
-  if (expandable) {
-    return `<div class="service-list service-list--expanded">${SERVICES.map((service, index) => `
-      <details class="service-row reveal" id="${service.slug}">
-        <summary>
-          <span class="service-number">${service.number} <i aria-hidden="true">/</i> ${service.name}</span>
-          <span class="service-summary">
-            <span class="service-headline">${editorial ? homeLabels[index][0] : service.headline}</span>
-            <span class="service-teaser">${editorial ? homeLabels[index][1] : service.summary}</span>
-          </span>
-          <span class="service-toggle" aria-hidden="true"></span>
-        </summary>
-        <div class="service-detail">
-          <p>${service.detail}</p>
-          <ul>${service.list.map((item) => `<li>${item}</li>`).join("")}</ul>
-          ${arrowLink(`/contact?service=${service.slug}`, `TALK ABOUT ${service.name}`)}
-        </div>
-      </details>`).join("")}</div>`;
-  }
-  return `<section class="services-section shell section-pad" aria-labelledby="services-title">
-    <div class="section-heading section-heading--split reveal">
-      <div>
-        <p class="eyebrow">STRATEGY, DESIGN & ENGINEERING</p>
-        <h2 class="section-title" id="services-title">SERVICES</h2>
+function serviceRows() {
+  return `<div class="service-list">${SERVICES.map((service) => `
+    <details class="service-row reveal" id="${service.slug}">
+      <summary>
+        <span class="service-number"><span>${service.number}</span><span>${service.name}</span></span>
+        <span class="service-summary">
+          <span class="service-headline">${service.headline}</span>
+          <span class="service-teaser">${service.summary}</span>
+        </span>
+        <span class="service-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="service-detail">
+        <p>${service.detail}</p>
+        <ul>${service.list.map((item) => `<li>${item}</li>`).join("")}</ul>
+        ${arrowLink(`/contact?service=${service.slug}`, `Discuss ${service.name.toLowerCase()}`)}
       </div>
-      <p class="section-intro">We bring the right mix of thinking and making to each brief. No borrowed playbook, no unnecessary complexity.</p>
-    </div>
-    ${serviceList({ expandable: true })}
-  </section>`;
+    </details>`).join("")}</div>`;
+}
+
+function serviceSection({ title = "What we build", description = "Web, AI, automation and software—chosen to fit the work.", className = "" } = {}) {
+  return `
+    <section class="services-section shell section-pad ${className}" aria-labelledby="services-title">
+      <div class="section-heading section-heading--split reveal">
+        <h2 class="section-title" id="services-title">${title}</h2>
+        <p class="section-intro">${description}</p>
+      </div>
+      ${serviceRows()}
+    </section>`;
 }
 
 function processSection({ full = false } = {}) {
   return `
     <section class="process-section shell section-pad" aria-labelledby="process-title">
       <div class="section-heading section-heading--split reveal">
-        <div>
-          <p class="eyebrow">GOOD WORK IS A SHARED PROCESS</p>
-          <h2 class="section-title" id="process-title">HOW WE WORK</h2>
-        </div>
-        <p class="section-intro">An open, considered path from the first useful question to a thoughtful launch.</p>
+        <h2 class="section-title" id="process-title">How we work</h2>
+        <p class="section-intro">A clear path from first question to thoughtful launch.</p>
       </div>
       <div class="process-grid${full ? " process-grid--large" : ""}">
         ${PROCESS.map((step) => `
@@ -208,11 +168,9 @@ function closingCta() {
   return `
     <section class="closing-cta" aria-labelledby="closing-title">
       <div class="shell closing-inner reveal">
-        <p class="eyebrow">GOOD THINGS START WITH A CONVERSATION</p>
         <h2 id="closing-title">HAVE SOMETHING<br />WORTH BUILDING?</h2>
-        <p>Have a thoughtful idea, a knotty workflow, or a product taking shape? We would love to hear what you are working on.</p>
+        <p>Tell us what you are working on. We can start with a conversation.</p>
         <a class="button button--dark" href="/contact" data-link>START A PROJECT <span aria-hidden="true">↗</span></a>
-        <span class="closing-footnote">A clear first conversation. No obligation.</span>
       </div>
     </section>`;
 }
@@ -221,68 +179,44 @@ function homePage() {
   return `
     <main id="main" class="page-home" tabindex="-1">
       <section class="hero shell" aria-labelledby="page-heading">
-        <div class="hero-overline">
-          <p class="eyebrow">INDEPENDENT DIGITAL STUDIO <span aria-hidden="true">/</span> DESIGN × TECHNOLOGY</p>
-          <span class="hero-edition">A THOUGHTFUL APPROACH TO DIGITAL</span>
-        </div>
-        <h1 id="page-heading" class="hero-title">WE BUILD<br />DIGITAL<br />PRODUCTS<br /><span>WITH INTENT.</span></h1>
+        <div class="hero-overline"><p class="eyebrow">Independent digital studio</p></div>
+        <h1 id="page-heading" class="hero-title">LET'S MAKE<br />SOMETHING<br /><span>USEFUL.</span></h1>
         <div class="hero-lower">
           <div class="hero-copy">
-            <p>AVENOX is a small digital studio shaping thoughtful websites, AI experiences and connected systems.</p>
-            <p>We bring design and engineering together to make digital work with clarity, character and purpose.</p>
+            <p>Thoughtful websites, AI products and digital systems—designed and built with care.</p>
             <div class="hero-actions">
               <a class="button button--dark" href="/contact" data-link>START A PROJECT <span aria-hidden="true">↗</span></a>
               <a class="button button--light" href="#work" data-link>VIEW OUR WORK <span aria-hidden="true">↓</span></a>
             </div>
           </div>
-          <aside class="hero-note" aria-label="Studio approach">
-            <span class="hero-note-mark" aria-hidden="true">✳</span>
-            <p>From an early thought to a considered digital product.</p>
-            <span class="hero-note-foot">WEB · AI · DIGITAL SYSTEMS</span>
-          </aside>
+          <p class="hero-aside">Design and engineering, brought into the same conversation.</p>
         </div>
         <figure class="hero-visual">
-          <img src="/images/studio-desk.webp" alt="A laptop with a subtle topographic map on a light wood studio desk, surrounded by books and architectural models." width="1376" height="768" fetchpriority="high" decoding="async" />
-          <figcaption><span>A SPACE TO MAKE THINGS CLEAR</span><span>STUDIO SCENE / ILLUSTRATIVE</span></figcaption>
+          <img src="/images/studio-desk.webp" alt="Illustrative studio photograph of a laptop with a topographic map on a light wood desk." width="1376" height="768" fetchpriority="high" decoding="async" />
+          <figcaption>Illustrative studio image</figcaption>
         </figure>
       </section>
-      ${buildList()}
+      ${serviceSection()}
       ${selectedWork({ compact: true })}
-      ${serviceList({ expandable: true, editorial: true })}
       <section class="neo-feature" aria-labelledby="neo-feature-title">
         <div class="shell neo-inner">
-          <div class="neo-copy reveal">
-            <p class="eyebrow">A PRODUCT EXPLORATION BY AVENOX</p>
-            <h2 id="neo-feature-title">MEET NEO.</h2>
-            <p class="neo-lead">A quieter space for ideas to take shape.</p>
-            <p>NEO is an interface study exploring how AI can feel more useful, more human, and less like another thing competing for your attention.</p>
-            <div class="neo-notes">
-              <div><span>01 / FOCUS</span><p>Make room for the thought, not the noise around it.</p></div>
-              <div><span>02 / CONTEXT</span><p>Keep the useful threads close as ideas develop.</p></div>
-            </div>
-            ${arrowLink("/contact?project=NEO&service=ai", "TALK TO US ABOUT NEO")}
+          <div class="neo-identity reveal">
+            <p class="eyebrow">AVENOX PRODUCT EXPLORATION</p>
+            <h2 id="neo-feature-title">NEO</h2>
           </div>
-          <figure class="neo-visual reveal">
-            <img src="/images/neo-interface.svg" alt="Illustrative NEO product interface study, with a calm workspace for questions and saved thoughts." width="1600" height="1000" loading="lazy" decoding="async" />
-            <figcaption>NEO / ILLUSTRATIVE INTERFACE STUDY</figcaption>
-          </figure>
+          <div class="neo-copy reveal">
+            <p class="neo-lead">A quieter way to think alongside AI.</p>
+            ${arrowLink("/contact?project=NEO&service=ai", "Discuss NEO")}
+          </div>
         </div>
       </section>
       <section class="studio-section shell section-pad" aria-labelledby="studio-title">
         <div class="studio-intro reveal">
-          <p class="eyebrow">DESIGN-LED. ENGINEERED WITH CARE.</p>
           <h2 class="section-title" id="studio-title">SMALL STUDIO.<br />BIG IDEAS.</h2>
         </div>
         <div class="studio-copy reveal">
-          <p class="studio-lead">A considered digital studio for ideas that deserve more than a template.</p>
-          <p>AVENOX brings design, engineering and emerging technology into one thoughtful practice. We stay close to the problem, make decisions in the open and care about how the finished work feels to use.</p>
-          <div class="studio-pillars">
-            <div><span>01 / PRODUCT THINKING</span><p>Start with what matters, then make the experience make sense.</p></div>
-            <div><span>02 / DIGITAL CRAFT</span><p>Attention to the small details that make the whole feel considered.</p></div>
-            <div><span>03 / PRACTICAL AI</span><p>Technology in service of a useful, human experience.</p></div>
-            <div><span>04 / CONNECTED SYSTEMS</span><p>Clearer workflows, made to be understood and maintained.</p></div>
-          </div>
-          ${arrowLink("/about", "MORE ABOUT THE STUDIO")}
+          <p class="studio-lead">Design and engineering for websites, AI, automation and software—starting with the question that matters.</p>
+          ${arrowLink("/about", "About the studio")}
         </div>
       </section>
       ${processSection()}
@@ -294,15 +228,13 @@ function workPage() {
   return `
     <main id="main" class="page-inner" tabindex="-1">
       <section class="page-hero shell" aria-labelledby="page-heading">
-        <p class="eyebrow">SELECTED WORK / PRODUCT THINKING & DIGITAL CRAFT</p>
+        <p class="eyebrow">Selected work</p>
         <h1 id="page-heading">IDEAS, MADE<br /><span>CONSIDERED.</span></h1>
         <div class="page-hero-lower">
-          <p>A small selection of product and interface explorations across web, AI and digital systems.</p>
-          <span class="page-index">01 — 03<br />SELECTED EXPLORATIONS</span>
+          <p>A concise archive of explorations across web, AI and digital products.</p>
         </div>
       </section>
       ${selectedWork()}
-      <div class="shell work-note-block"><p>These concise explorations show a way of thinking, not a set of performance claims. Where a visual is illustrative, it is labelled as such.</p></div>
       ${closingCta()}
     </main>`;
 }
@@ -311,21 +243,13 @@ function servicesPage() {
   return `
     <main id="main" class="page-inner" tabindex="-1">
       <section class="page-hero shell" aria-labelledby="page-heading">
-        <p class="eyebrow">WEB · AI · AUTOMATION · SOFTWARE</p>
-        <h1 id="page-heading">DIGITAL WORK,<br /><span>WITH A POINT OF VIEW.</span></h1>
+        <p class="eyebrow">Services</p>
+        <h1 id="page-heading">DIGITAL WORK,<br /><span>WITH INTENT.</span></h1>
         <div class="page-hero-lower">
-          <p>Thoughtful strategy, design and engineering for the parts of your business that happen digitally.</p>
-          <span class="page-index">FOUR PRACTICES<br />ONE CONSIDERED APPROACH</span>
+          <p>Design and engineering across websites, AI, automation and software.</p>
         </div>
       </section>
-      <section class="shell services-detail-section" aria-label="AVENOX services">
-        ${serviceList({ expandable: true })}
-      </section>
-      <section class="services-note shell section-pad">
-        <p class="eyebrow">A GOOD FIT STARTS WITH A GOOD QUESTION</p>
-        <p>Not sure which discipline your project needs? That is a useful place to begin. We can shape the brief together.</p>
-        ${arrowLink("/contact", "TELL US WHAT YOU ARE THINKING")}
-      </section>
+      ${serviceSection({ title: "Areas of practice", description: "Open a discipline for a closer look.", className: "services-detail-section" })}
       ${processSection({ full: true })}
       ${closingCta()}
     </main>`;
@@ -335,33 +259,29 @@ function aboutPage() {
   return `
     <main id="main" class="page-inner" tabindex="-1">
       <section class="page-hero shell" aria-labelledby="page-heading">
-        <p class="eyebrow">A SMALL, INDEPENDENT DIGITAL STUDIO</p>
+        <p class="eyebrow">Studio</p>
         <h1 id="page-heading">THOUGHTFUL<br />BY <span>DESIGN.</span></h1>
         <div class="page-hero-lower">
-          <p>AVENOX is a digital product studio working where thoughtful design, careful engineering and emerging technology meet.</p>
-          <span class="page-index">DESIGN<br />ENGINEERING<br />DIGITAL PRODUCTS</span>
+          <p>An independent digital studio bringing design, engineering, AI and automation into one practice.</p>
         </div>
       </section>
       <section class="about-story shell section-pad">
-        <div class="about-story-label reveal"><p class="eyebrow">THE STUDIO</p><h2 class="section-title">MADE TO<br />MAKE SENSE.</h2></div>
+        <div class="about-story-label reveal"><h2 class="section-title">MADE TO<br />MAKE SENSE.</h2></div>
         <div class="about-story-copy reveal">
-          <p class="about-lead">Good digital work begins with attention: to the people using it, the details around it and the reason it needs to exist.</p>
-          <p>AVENOX brings design and engineering into the same conversation. We work across websites, AI experiences, automation and custom software, treating each as an opportunity to make something clearer and more useful.</p>
-          <p>We keep the process open and the work grounded. That means asking better questions early, making the right things tangible, and taking care with the details that shape the everyday experience.</p>
-          <p>The studio stays intentionally focused: ask useful questions, make thoughtful decisions and build digital things with intent.</p>
+          <p class="about-lead">Good digital work starts with the right question and attention to the people who use it.</p>
+          <p>We keep design and engineering in the same conversation, from early structure to the details that shape everyday use.</p>
         </div>
       </section>
       <section class="principles-section">
         <div class="shell principles-inner">
           <div class="principles-heading reveal">
-            <p class="eyebrow">WHAT GUIDES THE WORK</p>
             <h2 class="section-title">A CLEARER<br />WAY FORWARD.</h2>
           </div>
           <div class="principles-list">
-            <article class="principle reveal"><span>01 / START WITH PEOPLE</span><p>Technology only matters when it improves an experience for someone.</p></article>
-            <article class="principle reveal"><span>02 / MAKE IT LEGIBLE</span><p>Good structure and clear language are part of good design.</p></article>
-            <article class="principle reveal"><span>03 / USE TOOLS WITH INTENT</span><p>AI and automation should solve a real problem, not become the story.</p></article>
-            <article class="principle reveal"><span>04 / CARE THROUGH THE DETAILS</span><p>The small interactions are where the quality of the whole becomes tangible.</p></article>
+            <article class="principle reveal"><h3>Start with people</h3><p>Technology should improve an experience for someone.</p></article>
+            <article class="principle reveal"><h3>Make it legible</h3><p>Clear structure and language are part of good design.</p></article>
+            <article class="principle reveal"><h3>Use tools with intent</h3><p>AI and automation should solve a real problem, not become the story.</p></article>
+            <article class="principle reveal"><h3>Care through the details</h3><p>Small interactions shape how the whole feels to use.</p></article>
           </div>
         </div>
       </section>
@@ -380,22 +300,16 @@ function contactPage() {
   return `
     <main id="main" class="page-inner contact-page" tabindex="-1">
       <section class="page-hero shell contact-hero" aria-labelledby="page-heading">
-        <p class="eyebrow">START WITH A CONVERSATION</p>
-        <h1 id="page-heading">LET'S MAKE<br /><span>SOMETHING USEFUL.</span></h1>
+        <p class="eyebrow">Contact</p>
+        <h1 id="page-heading">TELL US WHAT<br /><span>YOU'RE MAKING.</span></h1>
         <div class="page-hero-lower">
-          <p>Tell us a little about what you have in mind. A rough idea is more than enough to start.</p>
-          <span class="page-index">NO PERFECT BRIEF<br />REQUIRED</span>
+          <p>A rough outline of the idea, the work or the question is enough to begin.</p>
         </div>
       </section>
       <section class="contact-content shell">
         <div class="contact-aside reveal">
-          <p class="eyebrow">A GOOD PLACE TO BEGIN</p>
-          <h2>What are you<br />thinking about?</h2>
-          <p>Share the shape of the idea, the question behind it, or the workflow you would like to untangle.</p>
-          <div class="contact-aside-note">
-            <span class="contact-note-mark" aria-hidden="true">✳</span>
-            <p>This form is not connected to email yet. You can prepare, copy or download your brief; nothing is sent or stored by this page.</p>
-          </div>
+          <h2>A few useful<br />details.</h2>
+          <p>What needs to change? Who is it for? What would a good next step look like?</p>
         </div>
         <form class="inquiry-form reveal" id="inquiry-form" novalidate>
           <div class="form-context"${project ? "" : " hidden"}><span>PROJECT CONTEXT</span><strong>${escapeHtml(project)}</strong></div>
@@ -424,12 +338,12 @@ function contactPage() {
               <input id="budget" name="budget" type="text" maxlength="120" placeholder="A range, currency, or ‘not sure yet’" />
             </div>
             <div class="form-field form-field--full">
-              <label for="message">A little about the project <span aria-hidden="true">*</span></label>
+              <label for="message">Message <span aria-hidden="true">*</span></label>
               <textarea id="message" name="message" rows="6" minlength="12" maxlength="4000" required placeholder="What are you hoping to make, improve or figure out?"></textarea>
             </div>
           </div>
           <div class="form-bottom">
-            <p id="form-note">Required fields are marked with <span aria-hidden="true">*</span>. Your message stays in this browser until you choose to copy or download it.</p>
+            <p id="form-note">Required fields are marked with <span aria-hidden="true">*</span>. This form is not connected to email; nothing is sent or saved.</p>
             <button class="button button--dark" type="submit">PREPARE MY BRIEF <span aria-hidden="true">↗</span></button>
           </div>
           <div class="form-result" id="form-result" role="status" aria-live="polite" hidden></div>
@@ -440,9 +354,9 @@ function contactPage() {
 
 const LEGAL_CONTENT = {
   privacy: {
-    kicker: "LEGAL / PRIVACY",
+    kicker: "Privacy",
     title: "PRIVACY,<br /><span>IN PLAIN WORDS.</span>",
-    intro: "This page is a launch-ready draft, not legal advice. The bracketed business details must be completed and this policy reviewed before publication.",
+    intro: "This summary covers information handled when someone visits the site or prepares an inquiry brief.",
     sections: [
       ["Who is responsible", "The data controller is [legal business name], of [registered business address]. For privacy questions, contact [privacy contact email]. These business details must be supplied before this policy is relied on."],
       ["Information on this website", "The inquiry form currently runs only in your browser. Preparing a brief does not transmit it to AVENOX or save it on this website. Copying or downloading a brief happens only when you choose those browser actions. Do not enter sensitive personal information."],
@@ -453,9 +367,9 @@ const LEGAL_CONTENT = {
     ],
   },
   cookies: {
-    kicker: "LEGAL / COOKIES",
+    kicker: "Cookies",
     title: "A SMALL NOTE<br /><span>ON COOKIES.</span>",
-    intro: "This page describes the current website implementation. Confirm it against the final hosting and third-party services before launch.",
+    intro: "A snapshot of the current site setup. Confirm it against the live hosting, analytics and consent configuration.",
     sections: [
       ["What this site uses", "The current AVENOX website does not set first-party cookies and does not load advertising or analytics scripts. The contact form operates in the browser and does not use cookies or local storage."],
       ["Hosting and external services", "The hosting provider or any services added later may use strictly necessary technologies or process connection data. Confirm those providers and their practices here: [add provider and cookie details if applicable]."],
@@ -464,9 +378,9 @@ const LEGAL_CONTENT = {
     ],
   },
   terms: {
-    kicker: "LEGAL / TERMS",
+    kicker: "Terms",
     title: "THE TERMS<br /><span>OF THIS SITE.</span>",
-    intro: "A plain-language draft for the website only. Complete the business and jurisdiction details and obtain appropriate review before publication.",
+    intro: "These draft terms cover use of this website only; they do not set out terms for AVENOX client projects.",
     sections: [
       ["About AVENOX", "This website is operated by [legal business name], of [registered business address]. Replace these placeholders with the correct legal details."],
       ["Using this website", "You may browse this website for lawful purposes. Do not misuse the site, attempt to disrupt it, or use its content in a way that infringes another person's rights."],
@@ -485,7 +399,7 @@ function legalPage(kind) {
       <section class="page-hero shell" aria-labelledby="page-heading">
         <p class="eyebrow">${content.kicker}</p>
         <h1 id="page-heading">${content.title}</h1>
-        <div class="page-hero-lower"><p>${content.intro}</p><span class="page-index">AVENOX<br />LEGAL INFORMATION</span></div>
+        <div class="page-hero-lower"><p>${content.intro}</p></div>
       </section>
       <section class="legal-body shell">
         <p class="legal-review-note"><strong>Before publication:</strong> Replace every bracketed placeholder with verified business information and have this draft reviewed for the relevant jurisdiction.</p>
@@ -501,7 +415,7 @@ function legalPage(kind) {
 function notFoundPage() {
   return `
     <main id="main" class="not-found shell" tabindex="-1">
-      <p class="eyebrow">404 / WRONG TURN</p>
+      <p class="eyebrow">Page not found</p>
       <h1 id="page-heading">THIS PAGE<br /><span>ISN'T HERE.</span></h1>
       <p>The page may have moved, or the address may be mistyped. Let's get you back to something useful.</p>
       <div class="hero-actions">
@@ -661,7 +575,7 @@ function submitInquiry(form) {
   const result = form.querySelector("#form-result");
   result.hidden = false;
   result.innerHTML = `
-    <div class="form-result-head"><span>01 / BRIEF READY</span><span aria-hidden="true">✳</span></div>
+    <h3 class="form-result-title">Brief prepared</h3>
     <p>Your project brief is ready on this device. It has <strong>not</strong> been sent or stored.</p>
     <div class="form-result-actions">
       <button class="button button--dark" type="button" data-form-action="copy">COPY BRIEF</button>

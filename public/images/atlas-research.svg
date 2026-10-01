@@ -1,33 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" fill="none">
   <rect width="1600" height="1000" fill="#ECECE7"/>
-  <rect x="101" y="91" width="1398" height="818" fill="#FAFAF8"/>
-  <rect x="101" y="91" width="1398" height="70" fill="#F3F3EE"/>
-  <path d="M101 161h1398" stroke="#E1E1DB"/>
-  <text x="140" y="134" fill="#262722" font-family="Arial, sans-serif" font-size="21" font-weight="700" letter-spacing="2.5">ATLAS</text>
-  <text x="241" y="133" fill="#656760" font-family="Arial, sans-serif" font-size="13" letter-spacing="1.5">RESEARCH NOTES</text>
-  <rect x="1155" y="111" width="198" height="30" rx="2" fill="#E7E8E2"/>
-  <circle cx="1174" cy="126" r="5" fill="#7FA8A5"/>
-  <text x="1189" y="131" fill="#555750" font-family="Arial, sans-serif" font-size="12">ALL LOCATIONS</text>
-  <rect x="140" y="197" width="912" height="659" fill="#F0F0EB"/>
-  <path d="M140 269c121-89 223-50 308-4 82 45 179 51 270-9 111-73 216-53 334 3M140 320c121-89 223-50 308-4 82 45 179 51 270-9 111-73 216-53 334 3M140 371c121-89 223-50 308-4 82 45 179 51 270-9 111-73 216-53 334 3M140 422c121-89 223-50 308-4 82 45 179 51 270-9 111-73 216-53 334 3M140 473c121-89 223-50 308-4 82 45 179 51 270-9 111-73 216-53 334 3M140 524c121-89 223-50 308-4 82 45 179 51 270-9 111-73 216-53 334 3M140 575c121-89 223-50 308-4 82 45 179 51 270-9 111-73 216-53 334 3M140 626c121-89 223-50 308-4 82 45 179 51 270-9 111-73 216-53 334 3M140 677c121-89 223-50 308-4 82 45 179 51 270-9 111-73 216-53 334 3" stroke="#D4D5CE" stroke-width="2"/>
-  <path d="M252 197v659M365 197v659M478 197v659M591 197v659M704 197v659M817 197v659M930 197v659" stroke="#E2E2DD" stroke-width="1"/>
-  <path d="M140 243h912M140 294h912M140 345h912M140 396h912M140 447h912M140 498h912M140 549h912M140 600h912M140 651h912M140 702h912M140 753h912M140 804h912" stroke="#E2E2DD" stroke-width="1"/>
-  <path d="M281 508c61-80 117-107 188-104 57 2 111 44 162 44 76 0 114-52 184-55 59-3 103 30 150 73" stroke="#6F8F8D" stroke-width="4"/>
-  <circle cx="469" cy="404" r="11" fill="#FAFAF8" stroke="#6F8F8D" stroke-width="4"/>
-  <circle cx="631" cy="448" r="11" fill="#FAFAF8" stroke="#6F8F8D" stroke-width="4"/>
-  <circle cx="815" cy="393" r="11" fill="#FAFAF8" stroke="#6F8F8D" stroke-width="4"/>
-  <rect x="1081" y="197" width="379" height="659" fill="#FFFFFF" stroke="#E7E7E1"/>
-  <text x="1115" y="242" fill="#656760" font-family="Arial, sans-serif" font-size="12" letter-spacing="1.7">FIELD NOTES / 03</text>
-  <text x="1115" y="289" fill="#252621" font-family="Arial, sans-serif" font-size="25" font-weight="500">Reading the landscape</text>
-  <path d="M1115 314h310" stroke="#E5E5DF"/>
-  <text x="1115" y="357" fill="#656760" font-family="Arial, sans-serif" font-size="14">A collection of places, paths</text>
-  <text x="1115" y="380" fill="#656760" font-family="Arial, sans-serif" font-size="14">and observations to explore.</text>
-  <rect x="1115" y="418" width="310" height="1" fill="#E6E6E0"/>
-  <text x="1115" y="457" fill="#4E504A" font-family="Arial, sans-serif" font-size="13" letter-spacing="1.2">NOTES</text>
-  <path d="M1115 483h260M1115 508h224M1115 533h246" stroke="#E5E5DF" stroke-width="2"/>
-  <rect x="1115" y="572" width="310" height="1" fill="#E6E6E0"/>
-  <text x="1115" y="612" fill="#4E504A" font-family="Arial, sans-serif" font-size="13" letter-spacing="1.2">RELATED PLACES</text>
-  <circle cx="1122" cy="651" r="5" fill="#84A4A1"/>
-  <path d="M1140 651h215M1140 677h179M1140 703h203" stroke="#E5E5DF" stroke-width="2"/>
-  <text x="1115" y="822" fill="#666861" font-family="Arial, sans-serif" font-size="11" letter-spacing="1">ILLUSTRATIVE INTERFACE STUDY</text>
+  <g stroke="#CBCDC5" stroke-width="3" opacity=".92">
+    <path d="M-108 274C90 91 284 104 420 249s309 201 490 56 365-208 565-82 275 139 410 77"/>
+    <path d="M-110 317C89 134 282 147 418 292s309 201 490 56 365-208 565-82 275 139 410 77"/>
+    <path d="M-112 360C88 177 280 190 416 335s309 201 490 56 365-208 565-82 275 139 410 77"/>
+    <path d="M-114 403C87 220 278 233 414 378s309 201 490 56 365-208 565-82 275 139 410 77"/>
+    <path d="M-116 446C86 263 276 276 412 421s309 201 490 56 365-208 565-82 275 139 410 77"/>
+    <path d="M-118 489C85 306 274 319 410 464s309 201 490 56 365-208 565-82 275 139 410 77"/>
+    <path d="M-120 532C84 349 272 362 408 507s309 201 490 56 365-208 565-82 275 139 410 77"/>
+    <path d="M-122 575C83 392 270 405 406 550s309 201 490 56 365-208 565-82 275 139 410 77"/>
+    <path d="M-124 618C82 435 268 448 404 593s309 201 490 56 365-208 565-82 275 139 410 77"/>
+    <path d="M-126 661C81 478 266 491 402 636s309 201 490 56 365-208 565-82 275 139 410 77"/>
+    <path d="M-128 704C80 521 264 534 400 679s309 201 490 56 365-208 565-82 275 139 410 77"/>
+    <path d="M-130 747C79 564 262 577 398 722s309 201 490 56 365-208 565-82 275 139 410 77"/>
+  </g>
+  <g stroke="#D7D8D2" stroke-width="2">
+    <path d="M180 0c-37 140 10 216 139 291s162 154 118 277-33 243 77 432"/>
+    <path d="M227 0c-37 140 10 216 139 291s162 154 118 277-33 243 77 432"/>
+    <path d="M1114-20c-105 128-112 236-19 325s120 166 67 268-50 210 13 427"/>
+    <path d="M1161-20c-105 128-112 236-19 325s120 166 67 268-50 210 13 427"/>
+  </g>
+  <path d="M292 705c125-173 232-170 357-74s213 82 323-30 210-164 342-94" stroke="#496E6F" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="292" cy="705" r="11" fill="#ECECE7" stroke="#496E6F" stroke-width="5"/>
+  <circle cx="1314" cy="507" r="11" fill="#ECECE7" stroke="#496E6F" stroke-width="5"/>
 </svg>

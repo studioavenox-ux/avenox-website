@@ -10,11 +10,11 @@ const dist = path.join(root, "dist");
 const browserSource = (await readFile(path.join(root, "src/main.js"), "utf8"))
   .replace(/^import[^\n]*\n/gm, "");
 const expectedHeadings = new Map([
-  ["/", "WE BUILD"],
+  ["/", "LET'S MAKE"],
   ["/work", "IDEAS, MADE"],
   ["/services", "DIGITAL WORK,"],
   ["/about", "THOUGHTFUL"],
-  ["/contact", "LET'S MAKE"],
+  ["/contact", "TELL US WHAT"],
   ["/privacy", "PRIVACY,"],
   ["/cookies", "A SMALL NOTE"],
   ["/terms", "THE TERMS"],
@@ -151,15 +151,19 @@ for (const [route, expectedHeading] of expectedHeadings) {
 }
 
 const contact = renderWithBrowserStubs("/contact", "?project=NEO&service=ai").app.innerHTML;
-for (const field of ["name", "email", "business", "service", "budget", "message"]) {
+for (const [field, label] of Object.entries({ name: "Name ", email: "Email ", business: "Business / Project", service: "Service ", budget: "Budget", message: "Message " })) {
+  assert.ok(contact.includes(`<label for="${field}">${label}`), `Contact form label is missing or unclear for ${field}`);
   assert.match(contact, new RegExp(`name="${field}"`), `Contact form is missing ${field}`);
 }
+for (const field of ["name", "email", "service", "message"]) {
+  assert.match(contact, new RegExp(`<(?:input|select|textarea) id="${field}"[^>]*required`), `${field} should be required`);
+}
 assert.match(contact, /aria-live="polite"/, "Contact success state should be announced accessibly");
-assert.match(contact, /form is not connected to email yet/, "Contact form must explain that delivery is not connected");
+assert.match(contact, /form is not connected to email/, "Contact form must explain that delivery is not connected");
 assert.match(browserSource, /has \<strong\>not<\/strong\> been sent or stored/, "Contact success state must clearly explain that the brief was not sent");
 assert.match(contact, /value="NEO"/, "Project context should prefill the project field");
 
-function testSubmission({ nameValue, expectSuccess }) {
+function testSubmission({ nameValue, emailValue = "person@example.com", serviceValue = "web", messageValue = "A considered digital project.", expectSuccess, invalidField = "name" }) {
   class TestFormData {
     constructor(target) { this.values = target.values; }
     get(key) { return this.values[key]; }
@@ -167,11 +171,11 @@ function testSubmission({ nameValue, expectSuccess }) {
   const { listeners } = renderWithBrowserStubs("/contact", "", TestFormData);
   const fields = {
     name: { value: nameValue, customValidity: "", setCustomValidity(value) { this.customValidity = value; }, setAttribute(name, value) { this[name] = value; }, focus() { this.focused = true; } },
-    email: { value: "person@example.com" },
+    email: { value: emailValue, setAttribute(name, value) { this[name] = value; }, focus() { this.focused = true; } },
     business: { value: "A project" },
-    service: { value: "web" },
+    service: { value: serviceValue, setAttribute(name, value) { this[name] = value; }, focus() { this.focused = true; } },
     budget: { value: "Not sure yet" },
-    message: { value: "A considered digital project." },
+    message: { value: messageValue, setAttribute(name, value) { this[name] = value; }, focus() { this.focused = true; } },
   };
   const result = { hidden: true, innerHTML: "", scrollIntoView() {} };
   const form = {
@@ -180,10 +184,21 @@ function testSubmission({ nameValue, expectSuccess }) {
     values: Object.fromEntries(Object.entries(fields).map(([key, field]) => [key, field.value])),
     elements: { namedItem(name) { return fields[name]; } },
     matches(selector) { return selector === "#inquiry-form"; },
-    reportValidity() { return !fields.name.customValidity; },
+    reportValidity() {
+      const emailParts = fields.email.value.split("@");
+      const emailValid = emailParts.length === 2 && Boolean(emailParts[0]) && emailParts[1].includes(".") && emailParts.every((part) => part.trim() === part);
+      const checks = [
+        ["name", Boolean(fields.name.customValidity) || !fields.name.value.trim()],
+        ["email", !emailValid],
+        ["service", !fields.service.value],
+        ["message", fields.message.value.trim().length < 12],
+      ];
+      this.invalidField = checks.find(([, invalid]) => invalid)?.[0] || "";
+      return !this.invalidField;
+    },
     querySelector(selector) {
       if (selector === "#form-result") return result;
-      if (selector === ":invalid") return fields.name.customValidity ? fields.name : null;
+      if (selector === ":invalid") return this.invalidField ? fields[this.invalidField] : null;
       return null;
     },
   };
@@ -198,18 +213,21 @@ function testSubmission({ nameValue, expectSuccess }) {
     assert.match(form.dataset.brief, /person@example\.com/);
   } else {
     assert.equal(result.hidden, true, "Invalid inquiry must not show success");
-    assert.equal(fields.name["aria-invalid"], "true", "Invalid field should be marked for assistive technology");
-    assert.ok(fields.name.focused, "Invalid field should receive focus");
+    assert.equal(fields[invalidField]["aria-invalid"], "true", "Invalid field should be marked for assistive technology");
+    assert.ok(fields[invalidField].focused, "Invalid field should receive focus");
   }
 }
 
-// Exercise both the accessible invalid state and local-only success state.
+// Exercise required name, email, service and message validation, plus local-only success.
 testSubmission({ nameValue: "   ", expectSuccess: false });
+testSubmission({ nameValue: "Avery", emailValue: "not-an-email", expectSuccess: false, invalidField: "email" });
+testSubmission({ nameValue: "Avery", serviceValue: "", expectSuccess: false, invalidField: "service" });
+testSubmission({ nameValue: "Avery", messageValue: "Short", expectSuccess: false, invalidField: "message" });
 testSubmission({ nameValue: "Avery", expectSuccess: true });
 
 const css = await readFile(path.join(root, "src/styles.css"), "utf8");
 assert.ok(css.includes("min-width: 320px"), "320px minimum viewport support is missing");
-for (const width of ["360px", "520px", "760px", "960px"]) {
+for (const width of ["360px", "430px", "600px", "760px", "900px"]) {
   assert.ok(css.includes(`max-width: ${width}`), `Responsive breakpoint ${width} is missing`);
 }
 assert.match(css, /prefers-reduced-motion:\s*reduce/, "Reduced-motion support is missing");

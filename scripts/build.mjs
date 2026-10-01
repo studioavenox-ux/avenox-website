@@ -23,9 +23,9 @@ function staticFallback(route) {
   if (route.path === "/") return "";
   const headings = {
     "/work": "IDEAS, MADE<br /><span>CONSIDERED.</span>",
-    "/services": "DIGITAL WORK,<br /><span>WITH A POINT OF VIEW.</span>",
+    "/services": "DIGITAL WORK,<br /><span>WITH INTENT.</span>",
     "/about": "THOUGHTFUL<br /><span>BY DESIGN.</span>",
-    "/contact": "LET'S MAKE<br /><span>SOMETHING USEFUL.</span>",
+    "/contact": "TELL US WHAT<br /><span>YOU'RE MAKING.</span>",
     "/privacy": "PRIVACY,<br /><span>IN PLAIN WORDS.</span>",
     "/cookies": "A SMALL NOTE<br /><span>ON COOKIES.</span>",
     "/terms": "THE TERMS<br /><span>OF THIS SITE.</span>",
