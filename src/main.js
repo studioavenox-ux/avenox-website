@@ -86,8 +86,7 @@ function arrowLink(href, label, extraClass = "", ariaLabel = "") {
 }
 
 
-function projectRow(project, index) {
-  const visualFirst = index % 2 === 1;
+function projectRow(project) {
   const figure = `
     <figure class="project-visual ${project.className} reveal">
       <img src="${project.image}" alt="${escapeHtml(project.alt)}" width="1600" height="1000" loading="lazy" decoding="async" />
@@ -96,11 +95,11 @@ function projectRow(project, index) {
   const copy = `
     <div class="project-copy reveal">
       <p class="project-meta"><span>${project.number}</span><span>${escapeHtml(project.kind)}</span></p>
-      <h3 id="project-${project.number}">${project.name}</h3>
-      <p>${project.description}</p>
-      ${arrowLink(`/contact?${project.query}`, "Discuss this project", "project-cta", `Start a conversation about ${project.name}`)}
+      <h3 id="project-${project.number}">${escapeHtml(project.name)}</h3>
+      <p>${escapeHtml(project.description)}</p>
+      ${arrowLink(`/contact?${project.query}`, project.ctaLabel || "Discuss this work", "project-cta", `Start a conversation about ${project.name}`)}
     </div>`;
-  return `<article class="project-row${visualFirst ? " project-row--visual-first" : ""}" aria-labelledby="project-${project.number}">${copy}${figure}</article>`;
+  return `<article class="project-row project-row--${project.layout || "standard"}" aria-labelledby="project-${project.number}">${copy}${figure}</article>`;
 }
 
 function selectedWork({ compact = false } = {}) {
@@ -206,7 +205,7 @@ function homePage() {
           </div>
           <div class="neo-copy reveal">
             <p class="neo-lead">A quieter way to think alongside AI.</p>
-            ${arrowLink("/contact?project=NEO&service=ai", "Discuss NEO")}
+            ${arrowLink("/work#project-01", "View the study")}
           </div>
         </div>
       </section>

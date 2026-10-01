@@ -89,6 +89,7 @@ export const SERVICES = [
 export const PROJECTS = [
   {
     number: "01",
+    layout: "standard",
     name: "NEO",
     kind: "Product exploration",
     description: "A product study exploring how AI might support focused, human-led work.",
@@ -96,10 +97,12 @@ export const PROJECTS = [
     alt: "Typographic art direction for NEO, an AVENOX product exploration.",
     visualLabel: "Typographic study",
     className: "project--neo",
+    ctaLabel: "Discuss NEO",
     query: "project=NEO&service=ai",
   },
   {
     number: "02",
+    layout: "reverse",
     name: "THE SILENT ATLAS",
     kind: "Digital experience",
     description: "An editorial exploration of maps, place and slow discovery.",
@@ -107,10 +110,12 @@ export const PROJECTS = [
     alt: "Illustrative studio photograph of a laptop showing a contour map on a light oak desk.",
     visualLabel: "Illustrative studio image",
     className: "project--atlas",
+    ctaLabel: "Discuss Silent Atlas",
     query: "project=The%20Silent%20Atlas&service=web",
   },
   {
     number: "03",
+    layout: "asymmetric",
     name: "ATLAS RESEARCH",
     kind: "Research / map study",
     description: "A study in making layered, location-led information easier to explore.",
@@ -118,6 +123,7 @@ export const PROJECTS = [
     alt: "A quiet, illustrative contour-map composition created for the Atlas Research study.",
     visualLabel: "Illustrative map study",
     className: "project--research",
+    ctaLabel: "Discuss map-led work",
     query: "project=Atlas%20Research&service=software",
   },
 ];

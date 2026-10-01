@@ -150,6 +150,16 @@ for (const [route, expectedHeading] of expectedHeadings) {
   }
 }
 
+const renderedWork = renderWithBrowserStubs("/work").app.innerHTML;
+for (const layout of ["standard", "reverse", "asymmetric"]) {
+  assert.ok(renderedWork.includes(`project-row--${layout}`), `Work archive is missing the ${layout} project composition`);
+}
+for (const label of ["Discuss NEO", "Discuss Silent Atlas", "Discuss map-led work"]) {
+  assert.ok(renderedWork.includes(label), `Work archive is missing the working ${label} action`);
+}
+assert.ok(renderedWork.includes('id="project-01"'), "NEO archive entry should expose the anchor used by its feature link");
+assert.ok(renderWithBrowserStubs("/").app.innerHTML.includes('href="/work#project-01"'), "NEO feature should link to its real archive entry");
+
 const contact = renderWithBrowserStubs("/contact", "?project=NEO&service=ai").app.innerHTML;
 for (const [field, label] of Object.entries({ name: "Name ", email: "Email ", business: "Business / Project", service: "Service ", budget: "Budget", message: "Message " })) {
   assert.ok(contact.includes(`<label for="${field}">${label}`), `Contact form label is missing or unclear for ${field}`);
@@ -229,6 +239,9 @@ const css = await readFile(path.join(root, "src/styles.css"), "utf8");
 assert.ok(css.includes("min-width: 320px"), "320px minimum viewport support is missing");
 for (const width of ["360px", "430px", "600px", "760px", "900px"]) {
   assert.ok(css.includes(`max-width: ${width}`), `Responsive breakpoint ${width} is missing`);
+}
+for (const mobileComposition of [".project-row--standard .project-visual", ".project-row--reverse .project-copy", ".project-row--asymmetric .project-visual"]) {
+  assert.ok(css.includes(mobileComposition), `Mobile project composition is missing: ${mobileComposition}`);
 }
 assert.match(css, /prefers-reduced-motion:\s*reduce/, "Reduced-motion support is missing");
 const relativeLuminance = (hex) => {
