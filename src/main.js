@@ -108,7 +108,7 @@ function selectedWork({ compact = false } = {}) {
     <section class="work-section shell section-pad" id="work" aria-labelledby="work-title">
       <div class="section-heading${compact ? " section-heading--split" : ""} reveal">
         <h2 class="section-title" id="work-title">Selected work</h2>
-        ${compact ? `<p class="section-intro">A small archive of ideas taking shape across web, AI and digital products.</p>` : ""}
+        ${compact ? `<p class="section-intro">Personal AI, editorial web and map-led information design.</p>` : ""}
       </div>
       <div class="project-list">${projects.map(projectRow).join("")}</div>
       ${compact ? `<div class="work-more">${arrowLink("/work", "View all work")}</div>` : ""}
@@ -178,7 +178,7 @@ function homePage() {
   return `
     <main id="main" class="page-home" tabindex="-1">
       <section class="hero shell" aria-labelledby="page-heading">
-        <div class="hero-overline"><p class="eyebrow">Independent digital studio</p></div>
+        <div class="hero-overline"><p class="eyebrow">Avenox Studio</p></div>
         <h1 id="page-heading" class="hero-title">LET'S MAKE<br />SOMETHING<br /><span>USEFUL.</span></h1>
         <div class="hero-lower">
           <div class="hero-copy">
@@ -200,7 +200,7 @@ function homePage() {
       <section class="neo-feature" aria-labelledby="neo-feature-title">
         <div class="shell neo-inner">
           <div class="neo-identity reveal">
-            <p class="eyebrow">AVENOX PRODUCT EXPLORATION</p>
+            <p class="eyebrow">PERSONAL AI SYSTEM / PRODUCT CONCEPT</p>
             <h2 id="neo-feature-title">NEO</h2>
           </div>
           <div class="neo-copy reveal">
@@ -211,10 +211,10 @@ function homePage() {
       </section>
       <section class="studio-section shell section-pad" aria-labelledby="studio-title">
         <div class="studio-intro reveal">
-          <h2 class="section-title" id="studio-title">SMALL STUDIO.<br />BIG IDEAS.</h2>
+          <h2 class="section-title" id="studio-title">START WITH<br />THE WORK.</h2>
         </div>
         <div class="studio-copy reveal">
-          <p class="studio-lead">Design and engineering for websites, AI, automation and software—starting with the question that matters.</p>
+          <p class="studio-lead">Understand what needs to change; then shape the design, tools and build around it.</p>
           ${arrowLink("/about", "About the studio")}
         </div>
       </section>
@@ -230,7 +230,7 @@ function workPage() {
         <p class="eyebrow">Selected work</p>
         <h1 id="page-heading">IDEAS, MADE<br /><span>CONSIDERED.</span></h1>
         <div class="page-hero-lower">
-          <p>A concise archive of explorations across web, AI and digital products.</p>
+          <p>A personal AI product concept, an editorial website concept and a map-led information study.</p>
         </div>
       </section>
       ${selectedWork()}
@@ -260,15 +260,13 @@ function aboutPage() {
       <section class="page-hero shell" aria-labelledby="page-heading">
         <p class="eyebrow">Studio</p>
         <h1 id="page-heading">THOUGHTFUL<br />BY <span>DESIGN.</span></h1>
-        <div class="page-hero-lower">
-          <p>An independent digital studio bringing design, engineering, AI and automation into one practice.</p>
-        </div>
       </section>
       <section class="about-story shell section-pad">
         <div class="about-story-label reveal"><h2 class="section-title">MADE TO<br />MAKE SENSE.</h2></div>
         <div class="about-story-copy reveal">
-          <p class="about-lead">Good digital work starts with the right question and attention to the people who use it.</p>
-          <p>We keep design and engineering in the same conversation, from early structure to the details that shape everyday use.</p>
+          <p class="about-lead">Good digital work starts with the right question and careful attention to the people who use it.</p>
+          <p>Across websites, AI products, automation and software, we bring design and engineering into the same conversation.</p>
+          <p>Clear decisions keep the work focused, with care for the details that shape everyday use.</p>
         </div>
       </section>
       <section class="principles-section">
@@ -342,7 +340,7 @@ function contactPage() {
             </div>
           </div>
           <div class="form-bottom">
-            <p id="form-note">Required fields are marked with <span aria-hidden="true">*</span>. This form is not connected to email; nothing is sent or saved.</p>
+            <p id="form-note">Required fields are marked with <span aria-hidden="true">*</span>. This form has no email or backend connection; your details are not sent or stored. After preparation, copy or download the brief on this device.</p>
             <button class="button button--dark" type="submit">PREPARE MY BRIEF <span aria-hidden="true">↗</span></button>
           </div>
           <div class="form-result" id="form-result" role="status" aria-live="polite" hidden></div>
@@ -358,7 +356,7 @@ const LEGAL_CONTENT = {
     intro: "This summary covers information handled when someone visits the site or prepares an inquiry brief.",
     sections: [
       ["Who is responsible", "The data controller is [legal business name], of [registered business address]. For privacy questions, contact [privacy contact email]. These business details must be supplied before this policy is relied on."],
-      ["Information on this website", "The inquiry form currently runs only in your browser. Preparing a brief does not transmit it to AVENOX or save it on this website. Copying or downloading a brief happens only when you choose those browser actions. Do not enter sensitive personal information."],
+      ["Information on this website", "The inquiry form currently runs only in your browser. Preparing a brief does not transmit it to Avenox Studio or save it on this website. Copying or downloading a brief happens only when you choose those browser actions. Do not enter sensitive personal information."],
       ["Hosting and server logs", "The hosting provider may process technical request data, such as an IP address, browser details and requested page, in server logs. The provider, retention period, legal basis and applicable safeguards must be confirmed by the site operator: [add hosting and retention details]."],
       ["Cookies and analytics", "This version of the website does not add analytics, advertising pixels or non-essential cookies. See the Cookie Policy for current details. Update this section if analytics or other services are added."],
       ["Your choices and rights", "Depending on where you live, you may have rights to access, correct, delete or restrict the use of personal information. Add the applicable process, legal bases, retention details and supervisory authority here after jurisdiction-specific review: [complete before launch]."],
@@ -370,7 +368,7 @@ const LEGAL_CONTENT = {
     title: "A SMALL NOTE<br /><span>ON COOKIES.</span>",
     intro: "A snapshot of the current site setup. Confirm it against the live hosting, analytics and consent configuration.",
     sections: [
-      ["What this site uses", "The current AVENOX website does not set first-party cookies and does not load advertising or analytics scripts. The contact form operates in the browser and does not use cookies or local storage."],
+      ["What this site uses", "The current Avenox Studio website does not set first-party cookies and does not load advertising or analytics scripts. The contact form operates in the browser and does not use cookies or local storage."],
       ["Hosting and external services", "The hosting provider or any services added later may use strictly necessary technologies or process connection data. Confirm those providers and their practices here: [add provider and cookie details if applicable]."],
       ["Your controls", "You can manage or block cookies in your browser settings. If optional cookies or analytics are introduced, explain their purpose and provide any consent controls required in the places where this site is offered."],
       ["Updates", "This policy must be reviewed whenever the site's technology or hosting changes. Last reviewed: [date to be added]. For questions, contact [privacy contact email]."],
@@ -379,9 +377,9 @@ const LEGAL_CONTENT = {
   terms: {
     kicker: "Terms",
     title: "THE TERMS<br /><span>OF THIS SITE.</span>",
-    intro: "These draft terms cover use of this website only; they do not set out terms for AVENOX client projects.",
+    intro: "These draft terms cover use of the Avenox Studio website only; they do not set terms for client projects.",
     sections: [
-      ["About AVENOX", "This website is operated by [legal business name], of [registered business address]. Replace these placeholders with the correct legal details."],
+      ["About Avenox Studio", "This website is operated by [legal business name], of [registered business address]. Replace these placeholders with the correct legal details."],
       ["Using this website", "You may browse this website for lawful purposes. Do not misuse the site, attempt to disrupt it, or use its content in a way that infringes another person's rights."],
       ["Website content", "Copyright, licensing and use permissions for the website's text, design and imagery must be confirmed by the business before publication. Project names and illustrative interface visuals are shown as editorial explorations; they do not represent endorsements or performance claims. Confirm ownership and permissions for all final materials before launch."],
       ["No professional or project advice", "Website content is general information, not legal, financial or technical advice for a particular situation. A project relationship, scope, fees and responsibilities exist only when agreed separately in writing."],
@@ -414,19 +412,16 @@ function legalPage(kind) {
 function notFoundPage() {
   return `
     <main id="main" class="not-found shell" tabindex="-1">
-      <p class="eyebrow">Page not found</p>
-      <h1 id="page-heading">THIS PAGE<br /><span>ISN'T HERE.</span></h1>
-      <p>The page may have moved, or the address may be mistyped. Let's get you back to something useful.</p>
-      <div class="hero-actions">
-        <a class="button button--dark" href="/" data-link>BACK TO HOME <span aria-hidden="true">↗</span></a>
-        <a class="button button--light" href="/work" data-link>VIEW OUR WORK <span aria-hidden="true">↗</span></a>
-      </div>
+      <p class="eyebrow">404</p>
+      <h1 id="page-heading">THIS PAGE<br /><span>DOESN'T EXIST.</span></h1>
+      <a class="button button--dark" href="/" data-link>RETURN HOME <span aria-hidden="true">→</span></a>
     </main>`;
 }
 
 function updateMetadata(path) {
   const known = ROUTES.find((route) => route.path === path);
   const route = known || ROUTES.find((item) => item.path === "/404");
+  const canonicalPath = route.path === "/" ? "/" : `${route.path}/`;
   document.title = route.title;
   document.querySelector('meta[name="description"]')?.setAttribute("content", route.description);
   document.querySelector('meta[property="og:title"]')?.setAttribute("content", route.title);
@@ -439,7 +434,7 @@ function updateMetadata(path) {
     canonical.rel = "canonical";
     document.head.append(canonical);
   }
-  canonical.href = `${window.location.origin}${route.noindex ? "/404" : path === "/" ? "/" : `${path}/`}`;
+  canonical.href = `${window.location.origin}${canonicalPath}`;
   let robots = document.querySelector('meta[name="robots"]');
   if (!robots) {
     robots = document.createElement("meta");
@@ -453,8 +448,8 @@ function updateMetadata(path) {
     ogUrl.setAttribute("property", "og:url");
     document.head.append(ogUrl);
   }
-  ogUrl.content = `${window.location.origin}${path === "/" ? "/" : `${path}/`}`;
-  const absoluteImageUrl = `${window.location.origin}/images/studio-desk.webp`;
+  ogUrl.content = `${window.location.origin}${canonicalPath}`;
+  const absoluteImageUrl = `${window.location.origin}/images/avenox-social.png`;
   const ogImage = document.querySelector('meta[property="og:image"]');
   if (ogImage) ogImage.content = absoluteImageUrl;
   const twitterImage = document.querySelector('meta[name="twitter:image"]');
@@ -554,6 +549,9 @@ function submitInquiry(form) {
     return;
   }
 
+  // FORM DELIVERY INTEGRATION POINT: replace this local brief-preparation flow
+  // only when a verified endpoint and its privacy process are configured.
+  // Until then, the contact form intentionally stays on this device.
   const formData = new FormData(form);
   const labels = [
     ["Name", formData.get("name")],

@@ -29,21 +29,27 @@ function staticFallback(route) {
     "/privacy": "PRIVACY,<br /><span>IN PLAIN WORDS.</span>",
     "/cookies": "A SMALL NOTE<br /><span>ON COOKIES.</span>",
     "/terms": "THE TERMS<br /><span>OF THIS SITE.</span>",
-    "/404": "THIS PAGE<br /><span>ISN'T HERE.</span>",
+    "/404": "THIS PAGE<br /><span>DOESN'T EXIST.</span>",
   };
   const safeTitle = htmlEscape(route.title);
   const description = htmlEscape(route.description);
+  const isNotFound = route.path === "/404";
   let detail = "";
   if (route.path === "/work") {
-    detail = `<ul class="boot-fallback-list">${PROJECTS.map((project) => `<li><strong>${htmlEscape(project.name)}</strong><span>${htmlEscape(project.description)}</span></li>`).join("")}</ul>`;
+    detail = `<ul class="boot-fallback-list">${PROJECTS.map((project) => `<li><strong>${htmlEscape(project.name)}</strong><span>${htmlEscape(project.kind)}</span><span>${htmlEscape(project.description)}</span></li>`).join("")}</ul>`;
   } else if (route.path === "/services") {
     detail = `<ul class="boot-fallback-list">${SERVICES.map((service) => `<li><strong>${service.name}</strong><span>${htmlEscape(service.summary)}</span></li>`).join("")}</ul>`;
   } else if (route.path === "/contact") {
-    detail = "<p class=\"boot-fallback-note\">The inquiry form needs JavaScript to prepare a brief. It is not connected to email or a backend and will not transmit your details.</p>";
+    detail = "<p class=\"boot-fallback-note\">JavaScript is required to prepare an inquiry brief. The current form does not send or store your details; with JavaScript enabled, you can copy or download the brief on this device.</p>";
   } else if (["/privacy", "/cookies", "/terms"].includes(route.path)) {
     detail = "<p class=\"boot-fallback-note\">This legal page is a draft. Replace every bracketed placeholder with verified business information and obtain review before publication.</p>";
   }
-  return `<main id="main" class="boot-fallback shell" tabindex="-1"><p class="eyebrow">${safeTitle}</p><h1 id="page-heading">${headings[route.path] || "AVENOX"}</h1><p>${description}</p>${detail}<nav aria-label="Page navigation"><a href="/">HOME <span aria-hidden="true">↗</span></a><a href="/work">WORK <span aria-hidden="true">↗</span></a><a href="/contact">START A PROJECT <span aria-hidden="true">↗</span></a></nav></main>`;
+  const eyebrow = isNotFound ? "404" : safeTitle;
+  const descriptionMarkup = isNotFound ? "" : `<p>${description}</p>`;
+  const navigation = isNotFound
+    ? `<nav aria-label="Page navigation"><a href="/">RETURN HOME <span aria-hidden="true">→</span></a></nav>`
+    : `<nav aria-label="Page navigation"><a href="/">HOME <span aria-hidden="true">↗</span></a><a href="/work">WORK <span aria-hidden="true">↗</span></a><a href="/contact">START A PROJECT <span aria-hidden="true">↗</span></a></nav>`;
+  return `<main id="main" class="boot-fallback shell${isNotFound ? " boot-fallback--not-found" : ""}" tabindex="-1"><p class="eyebrow">${eyebrow}</p><h1 id="page-heading">${headings[route.path] || "AVENOX"}</h1>${descriptionMarkup}${detail}${navigation}</main>`;
 }
 
 await rm(output, { recursive: true, force: true });
@@ -62,7 +68,7 @@ let htmlTemplate = sourceHtml
 function pageHtml(route) {
   const routePath = route.path === "/" ? "/" : `${route.path}/`;
   const canonical = siteOrigin ? `${siteOrigin}${routePath}` : routePath;
-  const ogImage = siteOrigin ? `${siteOrigin}/images/studio-desk.webp` : "/images/studio-desk.webp";
+  const ogImage = siteOrigin ? `${siteOrigin}/images/avenox-social.png` : "/images/avenox-social.png";
   const title = htmlEscape(route.title);
   const description = htmlEscape(route.description);
   let html = htmlTemplate
@@ -87,7 +93,7 @@ function pageHtml(route) {
   if (existingOgUrl) {
     html = html.replace(existingOgUrl[0], `<meta property="og:url" content="${canonical}" />`);
   } else {
-    html = html.replace("<meta property=\"og:site_name\" content=\"AVENOX\" />", `<meta property="og:site_name" content="AVENOX" />\n    <meta property="og:url" content="${canonical}" />`);
+    html = html.replace("<meta property=\"og:site_name\" content=\"Avenox Studio\" />", `<meta property="og:site_name" content="Avenox Studio" />\n    <meta property="og:url" content="${canonical}" />`);
   }
 
   const fallback = staticFallback(route);

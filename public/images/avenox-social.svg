@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title">
+  <title id="title">AVENOX — Web • AI • Digital Systems</title>
+  <rect width="1200" height="630" fill="#f7f7f3"/>
+  <g transform="translate(320 244) scale(2.8)">
+    <path d="M11 36 23.9 10 37 36h-5.4L23.9 21.3 16.6 36H11Z" fill="#11110f"/>
+    <path d="M21.4 30.7h9.4" stroke="#89b6b7" stroke-width="2.4"/>
+  </g>
+  <text x="448" y="315" fill="#171815" font-family="DejaVu Sans, Arial, sans-serif" font-size="92" font-weight="700" letter-spacing="-7">AVENOX</text>
+  <text x="448" y="387" fill="#62645e" font-family="DejaVu Sans, Arial, sans-serif" font-size="28">Web • AI • Digital Systems</text>
+</svg>

@@ -26,6 +26,9 @@ const decoded = (value) => value
   .replaceAll("&#39;", "'")
   .replaceAll("&lt;", "<")
   .replaceAll("&gt;", ">");
+const siteOrigin = process.env.SITE_ORIGIN ? new URL(process.env.SITE_ORIGIN).origin : "";
+const routeUrl = (route) => `${siteOrigin}${route.path === "/" ? "/" : `${route.path}/`}`;
+const socialImageUrl = siteOrigin ? `${siteOrigin}/images/avenox-social.png` : "/images/avenox-social.png";
 
 function assertBalancedMarkup(html, route) {
   const voidTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
@@ -103,6 +106,22 @@ function renderWithBrowserStubs(pathname, search = "", FormDataClass = FormData)
   return { app, document, attributes, listeners: document.listeners };
 }
 
+// Social preview must be a light, correctly sized PNG using only the approved mark and brand typography.
+const socialPng = await readFile(path.join(dist, "images/avenox-social.png"));
+assert.deepEqual([...socialPng.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], "Social preview should be a valid PNG");
+assert.equal(socialPng.readUInt32BE(16), 1200, "Social preview should be 1200 pixels wide");
+assert.equal(socialPng.readUInt32BE(20), 630, "Social preview should be 630 pixels high");
+assert.ok(socialPng.length < 100_000, "Social preview should stay lightweight");
+const socialSvg = await readFile(path.join(root, "public/images/avenox-social.svg"), "utf8");
+const faviconSvg = await readFile(path.join(root, "public/favicon.svg"), "utf8");
+const approvedMarkPath = faviconSvg.match(/<path d="([^"]+)" fill="#11110f"/)?.[1];
+const approvedAccentPath = faviconSvg.match(/<path d="([^"]+)" stroke="#89b6b7" stroke-width="2\.4"/)?.[1];
+assert.ok(approvedMarkPath && socialSvg.includes(`d="${approvedMarkPath}"`), "Social preview should reuse the approved favicon mark geometry");
+assert.ok(approvedAccentPath && socialSvg.includes(`d="${approvedAccentPath}"`), "Social preview should reuse the approved favicon accent geometry");
+assert.match(socialSvg, /<text[^>]*>AVENOX<\/text>/, "Social preview source must use the AVENOX wordmark");
+assert.match(socialSvg, /Web • AI • Digital Systems/, "Social preview source must preserve the exact tagline");
+assert.doesNotMatch(socialSvg, /studio|independent|contact|project|award|leading/i, "Social preview must not add promotional claims");
+
 // The actual build output must contain a page entry for every requested route.
 for (const route of ROUTES) {
   const file = route.path === "/"
@@ -112,12 +131,27 @@ for (const route of ROUTES) {
   const html = await readFile(file, "utf8");
   const staticHeading = expectedHeadings.get(route.path);
   if (staticHeading) assert.ok(html.includes(staticHeading), `${route.path}: static fallback heading missing`);
-  assert.match(html, /<title>[^<]+<\/title>/, `${route.path}: title missing`);
-  assert.match(html, /<meta name="description" content="[^"]+"\s*\/>/, `${route.path}: description missing`);
-  assert.match(html, /<meta property="og:title"/, `${route.path}: Open Graph title missing`);
-  assert.match(html, /<meta property="og:description"/, `${route.path}: Open Graph description missing`);
-  assert.match(html, /<link rel="canonical"/, `${route.path}: canonical missing`);
-  if (route.noindex) assert.match(html, /noindex,follow/, "404 route should not be indexed");
+  assert.equal(decoded(html.match(/<title>([^<]+)<\/title>/i)?.[1] || ""), route.title, `${route.path}: route-specific title is incorrect`);
+  assert.equal(decoded(html.match(/<meta name="description" content="([^"]+)"/i)?.[1] || ""), route.description, `${route.path}: route-specific description is incorrect`);
+  assert.equal(decoded(html.match(/<meta property="og:title" content="([^"]+)"/i)?.[1] || ""), route.title, `${route.path}: Open Graph title is incorrect`);
+  assert.equal(decoded(html.match(/<meta property="og:description" content="([^"]+)"/i)?.[1] || ""), route.description, `${route.path}: Open Graph description is incorrect`);
+  assert.equal(html.match(/<meta property="og:site_name" content="([^"]+)"/i)?.[1], "Avenox Studio", `${route.path}: Open Graph studio name is incorrect`);
+  assert.equal(html.match(/<meta property="og:image" content="([^"]+)"/i)?.[1], socialImageUrl, `${route.path}: Open Graph image is incorrect`);
+  assert.equal(html.match(/<meta name="twitter:image" content="([^"]+)"/i)?.[1], socialImageUrl, `${route.path}: Twitter image is incorrect`);
+  assert.equal(html.match(/<meta property="og:image:type" content="([^"]+)"/i)?.[1], "image/png", `${route.path}: Open Graph image type is incorrect`);
+  assert.equal(html.match(/<meta property="og:image:width" content="([^"]+)"/i)?.[1], "1200", `${route.path}: Open Graph image width is incorrect`);
+  assert.equal(html.match(/<meta property="og:image:height" content="([^"]+)"/i)?.[1], "630", `${route.path}: Open Graph image height is incorrect`);
+  assert.equal(decoded(html.match(/<meta property="og:image:alt" content="([^"]+)"/i)?.[1] || ""), "AVENOX — Web • AI • Digital Systems", `${route.path}: Open Graph image alt is incorrect`);
+  assert.equal(decoded(html.match(/<meta name="twitter:image:alt" content="([^"]+)"/i)?.[1] || ""), "AVENOX — Web • AI • Digital Systems", `${route.path}: Twitter image alt is incorrect`);
+  assert.equal(html.match(/<link rel="canonical" href="([^"]+)"/i)?.[1], routeUrl(route), `${route.path}: canonical URL is incorrect`);
+  assert.equal(html.match(/<meta property="og:url" content="([^"]+)"/i)?.[1], routeUrl(route), `${route.path}: Open Graph URL is incorrect`);
+  if (route.noindex) {
+    assert.match(html, /<meta name="robots" content="noindex,follow"/, "404 route should not be indexed");
+    assert.match(html, /<p class="eyebrow">404<\/p>/, "404 fallback should use a minimal 404 label");
+    assert.match(html, /THIS PAGE<br \/><span>DOESN'T EXIST\.<\/span>/, "404 fallback should state that the page does not exist");
+    assert.match(html, /RETURN HOME <span aria-hidden="true">→<\/span>/, "404 fallback should offer one return-home action");
+    assert.doesNotMatch(html, /VIEW OUR WORK|START A PROJECT|may have moved/i, "404 fallback should stay minimal");
+  }
 }
 await access(path.join(dist, "404.html"));
 
@@ -126,14 +160,22 @@ for (const [route, expectedHeading] of expectedHeadings) {
   const { app, document, attributes } = renderWithBrowserStubs(route);
   assert.ok(app.innerHTML.includes(expectedHeading), `${route}: expected page heading was not rendered`);
   assertBalancedMarkup(app.innerHTML, route);
-  assert.ok(document.title.includes("AVENOX"), `${route}: document title was not set`);
-  assert.ok(attributes.get("canonical")?.href, `${route}: client canonical was not set`);
+  const routeData = ROUTES.find((item) => item.path === route) || ROUTES.find((item) => item.path === "/404");
+  const canonicalPath = routeData.path === "/" ? "/" : `${routeData.path}/`;
+  assert.equal(document.title, routeData.title, `${route}: document title was not set correctly`);
+  assert.equal(attributes.get("canonical")?.href, `http://avenox.local${canonicalPath}`, `${route}: client canonical is incorrect`);
+  assert.equal(attributes.get("og:url")?.content, `http://avenox.local${canonicalPath}`, `${route}: client Open Graph URL is incorrect`);
+  assert.equal(attributes.get("og:image")?.content, "http://avenox.local/images/avenox-social.png", `${route}: client Open Graph image is incorrect`);
+  assert.equal(attributes.get("twitter:image")?.content, "http://avenox.local/images/avenox-social.png", `${route}: client Twitter image is incorrect`);
   assert.ok(attributes.get("robots")?.content, `${route}: robots metadata was not set`);
 
   const ids = [...app.innerHTML.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
   assert.equal(new Set(ids).size, ids.length, `${route}: duplicate element IDs`);
   for (const match of app.innerHTML.matchAll(/<img\b([^>]*)>/g)) {
-    assert.match(match[1], /\balt="[^"]*"/, `${route}: image is missing alt text`);
+    assert.match(match[1], /\balt="[^"]+"/, `${route}: content image needs descriptive alt text`);
+    assert.match(match[1], /\bwidth="\d+"/, `${route}: image needs intrinsic width to limit layout shift`);
+    assert.match(match[1], /\bheight="\d+"/, `${route}: image needs intrinsic height to limit layout shift`);
+    assert.match(match[1], /\bdecoding="async"/, `${route}: image should decode asynchronously`);
     const src = match[1].match(/\bsrc="([^"]+)"/)?.[1];
     assert.ok(src?.startsWith("/images/"), `${route}: image source should be same-origin`);
     await access(path.join(dist, src.slice(1)));
@@ -155,10 +197,34 @@ for (const [route, label] of [["/work", "Work"], ["/services", "Services"], ["/a
   assert.ok(page.includes(`href="${route}" data-link aria-current="page">${label}</a>`), `${route}: primary navigation should identify the current page`);
 }
 
+const renderedHome = renderWithBrowserStubs("/").app.innerHTML;
+assert.match(renderedHome, /Web • AI • Digital Systems/, "Header/footer should use the exact approved brand line");
+assert.match(renderedHome, /AVENOX<span class="brand-mark" aria-hidden="true">\/<\/span>/, "Header/footer should keep the approved wordmark treatment");
+assert.match(renderedHome, /href="\/contact" data-link>START A PROJECT/, "Primary project CTA should remain clear and working");
+assert.match(renderedHome, /LET'S MAKE<br \/>SOMETHING<br \/><span>USEFUL\.<\/span>/, "Approved home hero line should be preserved");
+const renderedAbout = renderWithBrowserStubs("/about").app.innerHTML;
+assert.match(renderedAbout, /Good digital work starts with the right question and careful attention to the people who use it\./, "About page should keep the approved lead");
+assert.match(renderedAbout, /Across websites, AI products, automation and software, we bring design and engineering into the same conversation\./, "About page should explain the studio's practice clearly");
+assert.match(renderedAbout, /Clear decisions keep the work focused, with care for the details that shape everyday use\./, "About page should connect decisions to everyday experience");
+assert.match(renderedAbout, /<article class="principle reveal"><h3>/, "Studio principles should use proper h3 headings");
+
 const renderedWork = renderWithBrowserStubs("/work").app.innerHTML;
 const neoProject = PROJECTS.find((project) => project.name === "NEO");
+const atlasResearch = PROJECTS.find((project) => project.name === "ATLAS RESEARCH");
+assert.equal(neoProject?.kind, "Personal AI system / product", "NEO should be classified accurately as a personal AI system / product");
+assert.match(neoProject?.description || "", /concept/i, "NEO must be described as a concept rather than a launched product");
 assert.match(neoProject?.visualLabel || "", /illustrative/i, "NEO's interface concept must be identified as illustrative");
 assert.match(neoProject?.alt || "", /not a product screenshot/i, "NEO's alt text must not imply a real screenshot");
+assert.match(renderedWork, /Personal AI system \/ product/, "NEO's project type should be visible in the archive");
+assert.match(renderedWork, /Editorial website concept/, "Silent Atlas should be identified as a website concept");
+assert.equal(atlasResearch?.kind, "Information design study", "Atlas Research should be classified as an information-design study");
+assert.ok(!atlasResearch?.query.includes("service="), "Atlas Research should not be prefilled as a service it does not represent");
+assert.match(renderedWork, /Information design study/, "Atlas Research's project type should be visible in the archive");
+const staticWork = await readFile(path.join(dist, "work/index.html"), "utf8");
+for (const project of PROJECTS) {
+  assert.ok(staticWork.includes(project.kind), `Static work fallback is missing the honest type for ${project.name}`);
+  assert.ok(staticWork.includes(project.name), `Static work fallback is missing ${project.name}`);
+}
 for (const layout of ["standard", "reverse", "asymmetric"]) {
   assert.ok(renderedWork.includes(`project-row--${layout}`), `Work archive is missing the ${layout} project composition`);
 }
@@ -213,9 +279,30 @@ for (const field of ["name", "email", "service", "message"]) {
   assert.match(contact, new RegExp(`<(?:input|select|textarea) id="${field}"[^>]*required`), `${field} should be required`);
 }
 assert.match(contact, /aria-live="polite"/, "Contact success state should be announced accessibly");
-assert.match(contact, /form is not connected to email/, "Contact form must explain that delivery is not connected");
-assert.match(browserSource, /has \<strong\>not<\/strong\> been sent or stored/, "Contact success state must clearly explain that the brief was not sent");
+assert.match(contact, /has no email or backend connection/, "Contact form must explain that delivery is not connected");
+assert.match(contact, /After preparation, copy or download the brief on this device/, "Contact form must explain what happens after preparation");
+assert.match(browserSource, /FORM DELIVERY INTEGRATION POINT/, "The future delivery integration point should be obvious in code");
+assert.match(browserSource, /has <strong>not<\/strong> been sent or stored/, "Contact success state must clearly explain that the brief was not sent");
+assert.match(browserSource, /COPY BRIEF[\s\S]*DOWNLOAD BRIEF/, "Prepared brief should offer copy and download actions");
+assert.doesNotMatch(browserSource, /fetch\s*\(|XMLHttpRequest|mailto:/i, "Contact form should not imply or attempt delivery without a backend");
 assert.match(contact, /value="NEO"/, "Project context should prefill the project field");
+
+for (const [route, requiredPlaceholders] of [
+  ["/privacy", ["[legal business name]", "[registered business address]", "[privacy contact email]", "[date to be added]"]],
+  ["/cookies", ["[add provider and cookie details if applicable]", "[privacy contact email]", "[date to be added]"]],
+  ["/terms", ["[legal business name]", "[registered business address]", "[jurisdiction and legal wording to be supplied]", "[business contact email]", "[date to be added]"]],
+]) {
+  const legalPage = renderWithBrowserStubs(route).app.innerHTML;
+  assert.match(legalPage, /Before publication:/, `${route}: legal review note should be visible`);
+  for (const placeholder of requiredPlaceholders) {
+    assert.ok(legalPage.includes(placeholder), `${route}: missing verified-information placeholder ${placeholder}`);
+  }
+}
+const rendered404 = renderWithBrowserStubs("/404").app.innerHTML;
+assert.match(rendered404, /<p class="eyebrow">404<\/p>/, "Client 404 should show its status code");
+assert.match(rendered404, /THIS PAGE<br \/><span>DOESN'T EXIST\.<\/span>/, "Client 404 should use the approved concise wording");
+assert.match(rendered404, />RETURN HOME <span aria-hidden="true">→<\/span>/, "Client 404 should offer a return-home action");
+assert.doesNotMatch(rendered404, /The page may have moved|VIEW OUR WORK/, "Client 404 should avoid extra copy and competing actions");
 
 function testSubmission({ nameValue, emailValue = "person@example.com", serviceValue = "web", messageValue = "A considered digital project.", expectSuccess, invalidField = "name" }) {
   class TestFormData {
@@ -281,13 +368,20 @@ testSubmission({ nameValue: "Avery", expectSuccess: true });
 
 const css = await readFile(path.join(root, "src/styles.css"), "utf8");
 assert.ok(css.includes("min-width: 320px"), "320px minimum viewport support is missing");
-for (const width of ["360px", "430px", "600px", "760px", "900px"]) {
+for (const width of ["360px", "430px", "600px", "800px", "900px"]) {
   assert.ok(css.includes(`max-width: ${width}`), `Responsive breakpoint ${width} is missing`);
 }
+assert.match(css, /@media\s*\(min-width:\s*1600px\)/, "Large-screen layout treatment is missing");
+assert.match(css, /--measure:\s*1500px/, "Wide layouts should retain a readable maximum measure");
 for (const mobileComposition of [".project-row--standard .project-visual", ".project-row--reverse .project-copy", ".project-row--asymmetric .project-visual"]) {
   assert.ok(css.includes(mobileComposition), `Mobile project composition is missing: ${mobileComposition}`);
 }
+assert.match(css, /:focus-visible\s*\{\s*outline:\s*2px solid/, "Visible keyboard focus is missing");
+assert.match(css, /\.skip-link\s*\{[\s\S]*?position:\s*fixed/, "Skip link is missing");
+assert.match(css, /\.menu-toggle\s*\{[\s\S]*?width:\s*44px[\s\S]*?height:\s*44px/, "Mobile menu button needs a usable touch target");
 assert.match(css, /prefers-reduced-motion:\s*reduce/, "Reduced-motion support is missing");
+assert.match(browserSource, /reduceMotion\.matches/, "Interactive motion should respect the reduced-motion preference");
+assert.match(browserSource, /IntersectionObserver/, "Progressive reveal behavior should avoid requiring motion support");
 const relativeLuminance = (hex) => {
   const channels = [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255)
     .map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
@@ -311,4 +405,4 @@ for (const background of [paper, "#f0f0eb", "#ecece7", "#f1f1ec"]) {
 }
 assert.doesNotMatch(browserSource, /(?:localhost|127\.0\.0\.1)/i, "Browser code must not call a local service");
 
-console.log(`QA passed: ${ROUTES.length} route builds, client rendering, internal links, imagery, metadata, form fields, responsive breakpoints and reduced-motion support.`);
+console.log(`QA passed (static route and browser-stub checks): ${ROUTES.length} route builds, client rendering, internal links, imagery, route metadata, legal placeholders, contact flow, responsive CSS, accessibility tokens and reduced-motion support. No real-browser visual pass is performed by this script.`);
