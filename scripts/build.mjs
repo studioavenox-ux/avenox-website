@@ -6,16 +6,24 @@ import { PROJECTS, ROUTES, SERVICES } from "../src/site-data.js";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const output = path.join(root, "dist");
 const siteOriginInput = process.env.SITE_ORIGIN?.trim();
+const productionBuild = process.argv.includes("--production");
 
 function safeOrigin(input) {
   if (!input) return "";
   const parsed = new URL(input);
   if (!/^https?:$/.test(parsed.protocol)) throw new Error("SITE_ORIGIN must use http:// or https://");
+  if (parsed.username || parsed.password) throw new Error("SITE_ORIGIN must not contain credentials");
   if (parsed.pathname !== "/" || parsed.search || parsed.hash) throw new Error("SITE_ORIGIN must be an origin without a path, query or hash");
   return parsed.origin;
 }
 
+if (productionBuild && !siteOriginInput) {
+  throw new Error("SITE_ORIGIN is required for a production build; set it to the final HTTPS site origin.");
+}
 const siteOrigin = safeOrigin(siteOriginInput);
+if (productionBuild && !siteOrigin.startsWith("https://")) {
+  throw new Error("Production builds require SITE_ORIGIN to use https://.");
+}
 const xmlEscape = (value) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
 const htmlEscape = (value) => value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
@@ -55,6 +63,8 @@ function staticFallback(route) {
 await rm(output, { recursive: true, force: true });
 await mkdir(path.join(output, "assets"), { recursive: true });
 await cp(path.join(root, "public"), output, { recursive: true });
+// The SVG is the editable social-card source; production metadata uses the PNG.
+await rm(path.join(output, "images", "avenox-social.svg"), { force: true });
 
 for (const asset of ["main.js", "site-data.js", "styles.css"]) {
   await cp(path.join(root, "src", asset), path.join(output, "assets", asset));

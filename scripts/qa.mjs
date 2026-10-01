@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, access } from "node:fs/promises";
+import { readFile, access, readdir } from "node:fs/promises";
 import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
@@ -122,6 +122,20 @@ assert.match(socialSvg, /<text[^>]*>AVENOX<\/text>/, "Social preview source must
 assert.match(socialSvg, /Web • AI • Digital Systems/, "Social preview source must preserve the exact tagline");
 assert.doesNotMatch(socialSvg, /studio|independent|contact|project|award|leading/i, "Social preview must not add promotional claims");
 
+const productionEntries = new Set(await readdir(dist));
+for (const devArtifact of [".git", "node_modules", "scripts", "src", "README.md", "package.json", ".env", ".env.production"]) {
+  assert.ok(!productionEntries.has(devArtifact), `Production output must not contain development-only artifact ${devArtifact}`);
+}
+const productionImages = new Set(await readdir(path.join(dist, "images")));
+assert.ok(!productionImages.has("avenox-social.svg"), "Editable social-source SVG should not be shipped when the PNG is used for metadata");
+await access(path.join(dist, "favicon.svg"));
+assert.match(await readFile(path.join(dist, "favicon.svg"), "utf8"), /<svg\b/, "Approved favicon should be present in the production output");
+const builtHome = await readFile(path.join(dist, "index.html"), "utf8");
+assert.match(builtHome, /<link rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"/, "Production HTML should link to the approved favicon");
+assert.match(builtHome, /<link rel="stylesheet" href="\/assets\/styles\.css"/, "Production HTML should use built stylesheet assets");
+assert.match(builtHome, /<script type="module" src="\/assets\/main\.js"/, "Production HTML should use the built runtime entrypoint");
+assert.doesNotMatch(builtHome, /\/(?:src|scripts)\//, "Production HTML must not reference source or development scripts");
+
 // The actual build output must contain a page entry for every requested route.
 for (const route of ROUTES) {
   const file = route.path === "/"
@@ -154,6 +168,17 @@ for (const route of ROUTES) {
   }
 }
 await access(path.join(dist, "404.html"));
+const builtRobots = await readFile(path.join(dist, "robots.txt"), "utf8");
+if (siteOrigin) {
+  assert.ok(builtRobots.split(/\r?\n/).includes(`Sitemap: ${siteOrigin}/sitemap.xml`), "robots.txt should publish the production sitemap URL");
+  await access(path.join(dist, "sitemap.xml"));
+  const sitemap = await readFile(path.join(dist, "sitemap.xml"), "utf8");
+  const sitemapUrls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+  assert.deepEqual(sitemapUrls, ROUTES.filter((route) => !route.noindex).map(routeUrl), "Production sitemap should list only public routes");
+} else {
+  assert.ok(!productionEntries.has("sitemap.xml"), "Sitemap should not be emitted without a known production origin");
+  assert.doesNotMatch(builtRobots, /^Sitemap:/m, "robots.txt should not advertise a sitemap without a production origin");
+}
 
 // Exercise the client renderer on each route using a minimal browser surface.
 for (const [route, expectedHeading] of expectedHeadings) {

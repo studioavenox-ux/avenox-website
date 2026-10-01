@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "node scripts/server.mjs --dev",
     "build": "node scripts/build.mjs",
+    "build:production": "node scripts/build.mjs --production",
     "preview": "node scripts/server.mjs --preview",
     "qa": "npm run build && node scripts/qa.mjs"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

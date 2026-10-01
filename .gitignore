@@ -1,3 +1,8 @@
 dist/
 node_modules/
 .DS_Store
+
+# Keep local environment values and provider credentials out of Git.
+.env
+.env.*
+!.env.example
