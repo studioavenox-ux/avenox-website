@@ -169,7 +169,7 @@ function closingCta() {
       <div class="shell closing-inner reveal">
         <h2 id="closing-title">HAVE SOMETHING<br />WORTH BUILDING?</h2>
         <p>Tell us what you are working on. We can start with a conversation.</p>
-        <a class="button button--dark" href="/contact" data-link>START A PROJECT <span aria-hidden="true">↗</span></a>
+        <a class="button button--dark" href="/contact" data-link>START A PROJECT <span aria-hidden="true">→</span></a>
       </div>
     </section>`;
 }

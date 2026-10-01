@@ -150,7 +150,15 @@ for (const [route, expectedHeading] of expectedHeadings) {
   }
 }
 
+for (const [route, label] of [["/work", "Work"], ["/services", "Services"], ["/about", "Studio"], ["/contact", "Contact"]]) {
+  const page = renderWithBrowserStubs(route).app.innerHTML;
+  assert.ok(page.includes(`href="${route}" data-link aria-current="page">${label}</a>`), `${route}: primary navigation should identify the current page`);
+}
+
 const renderedWork = renderWithBrowserStubs("/work").app.innerHTML;
+const neoProject = PROJECTS.find((project) => project.name === "NEO");
+assert.match(neoProject?.visualLabel || "", /illustrative/i, "NEO's interface concept must be identified as illustrative");
+assert.match(neoProject?.alt || "", /not a product screenshot/i, "NEO's alt text must not imply a real screenshot");
 for (const layout of ["standard", "reverse", "asymmetric"]) {
   assert.ok(renderedWork.includes(`project-row--${layout}`), `Work archive is missing the ${layout} project composition`);
 }
@@ -159,6 +167,42 @@ for (const label of ["Discuss NEO", "Discuss Silent Atlas", "Discuss map-led wor
 }
 assert.ok(renderedWork.includes('id="project-01"'), "NEO archive entry should expose the anchor used by its feature link");
 assert.ok(renderWithBrowserStubs("/").app.innerHTML.includes('href="/work#project-01"'), "NEO feature should link to its real archive entry");
+
+function testMobileMenu() {
+  const { document, listeners } = renderWithBrowserStubs("/");
+  const buttonAttributes = new Map([["aria-expanded", "false"], ["aria-label", "Open navigation"]]);
+  const navClasses = new Set();
+  const bodyClasses = new Set();
+  const button = {
+    getAttribute(name) { return buttonAttributes.get(name) || null; },
+    setAttribute(name, value) { buttonAttributes.set(name, value); },
+    focus() { this.focused = true; },
+  };
+  const nav = {
+    classList: {
+      toggle(name, force) { force ? navClasses.add(name) : navClasses.delete(name); },
+      remove(name) { navClasses.delete(name); },
+    },
+  };
+  const originalQuerySelector = document.querySelector.bind(document);
+  document.querySelector = (selector) => {
+    if (selector === "#primary-nav") return nav;
+    if (selector === "#menu-toggle") return button;
+    if (selector.startsWith("#menu-toggle[aria-expanded=")) return button.getAttribute("aria-expanded") === "true" ? button : null;
+    return originalQuerySelector(selector);
+  };
+  document.body.classList.toggle = (name, force) => { force ? bodyClasses.add(name) : bodyClasses.delete(name); };
+  document.body.classList.remove = (name) => bodyClasses.delete(name);
+  const click = listeners.find(([type]) => type === "click")?.[1];
+  const keydown = listeners.find(([type]) => type === "keydown")?.[1];
+  click({ target: { closest(selector) { return selector === "#menu-toggle" ? button : null; } } });
+  assert.equal(button.getAttribute("aria-expanded"), "true", "Mobile navigation should expose its expanded state");
+  assert.ok(navClasses.has("is-open") && bodyClasses.has("menu-open"), "Opening the mobile menu should expose it and lock background scrolling");
+  keydown({ key: "Escape" });
+  assert.equal(button.getAttribute("aria-expanded"), "false", "Escape should close the mobile menu");
+  assert.ok(!navClasses.has("is-open") && !bodyClasses.has("menu-open") && button.focused, "Escape should close the menu and return focus to its button");
+}
+testMobileMenu();
 
 const contact = renderWithBrowserStubs("/contact", "?project=NEO&service=ai").app.innerHTML;
 for (const [field, label] of Object.entries({ name: "Name ", email: "Email ", business: "Business / Project", service: "Service ", budget: "Budget", message: "Message " })) {
@@ -255,10 +299,13 @@ const contrast = (first, second) => {
   return (values[0] + 0.05) / (values[1] + 0.05);
 };
 const paper = colorToken("--paper");
+const ink = colorToken("--ink");
+const accent = colorToken("--accent");
 const muted = colorToken("--muted");
 const accentInk = colorToken("--accent-ink");
-assert.ok(paper && muted && accentInk, "Core accessible color tokens are missing");
+assert.ok(paper && ink && accent && muted && accentInk, "Core accessible color tokens are missing");
 assert.ok(contrast(muted, paper) >= 4.5, "Muted body text should meet WCAG AA contrast on paper");
+assert.ok(contrast(ink, accent) >= 4.5, "Primary button text should meet WCAG AA contrast on the cyan hover surface");
 for (const background of [paper, "#f0f0eb", "#ecece7", "#f1f1ec"]) {
   assert.ok(contrast(accentInk, background) >= 4.5, `Cyan accent text should meet WCAG AA on ${background}`);
 }
