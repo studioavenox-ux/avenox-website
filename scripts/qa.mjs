@@ -251,7 +251,12 @@ for (const project of [neoProject, atlasProject, nexoraProject]) {
   assert.doesNotMatch(`${project.visualLabel} ${project.alt}`, /illustrative|not a product screenshot/i, `${project.name}: real screenshots must not be called illustrative`);
 }
 assert.equal(silentAtlas?.image, null, "The Silent Atlas has no verified assets and must stay an honest placeholder");
-assert.match(silentAtlas?.visualLabel || "", /pending/i, "The Silent Atlas placeholder must say the screenshot is pending");
+assert.match(silentAtlas?.visualLabel || "", /^Concept — screenshot pending/, "The Silent Atlas must be labelled a concept with its screenshot pending");
+assert.doesNotMatch(silentAtlas?.visualLabel || "", /real project screenshot/i, "The Silent Atlas placeholder must not imply a screenshot exists");
+const publicImages = new Set((await readdir(path.join(root, "public/images"))));
+assert.deepEqual([...publicImages].sort(), ["avenox-social.png", "avenox-social.svg"], "public/images should hold only the AVENOX social card; portfolio imagery lives in public/projects");
+const projectFiles = (await readdir(path.join(root, "public/projects"), { recursive: true })).filter((file) => /\.(webp|png|jpe?g|svg|avif|gif)$/i.test(file));
+assert.deepEqual(projectFiles.map((file) => `/projects/${file}`).sort(), PROJECTS.filter((project) => project.image).map((project) => project.image).sort(), "Every file in public/projects must be a verified portfolio image that is actually used");
 assert.match(renderedWork, /SCREENSHOT PENDING/, "The pending placeholder should be visible in the work archive");
 assert.match(renderedWork, /Personal AI agent \/ interactive prototype/, "NEO's project type should be visible in the archive");
 assert.match(renderedWork, /Editorial website concept/, "Silent Atlas should be identified as a website concept");

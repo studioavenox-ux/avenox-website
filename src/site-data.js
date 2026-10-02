@@ -108,7 +108,7 @@ export const PROJECTS = [
     description: "A map-led exploration of place and slow discovery.",
     image: null,
     alt: "",
-    visualLabel: "Screenshot pending — no verified project assets available yet",
+    visualLabel: "Concept — screenshot pending; no verified project assets available yet",
     className: "project--silent-atlas",
     ctaLabel: "Discuss Silent Atlas",
     query: "project=The%20Silent%20Atlas&service=web",
