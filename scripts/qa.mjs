@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile, access, readdir } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import net from "node:net";
 import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
@@ -52,7 +54,7 @@ function assertBalancedMarkup(html, route) {
   assert.deepEqual(stack, [], `${route}: unclosed HTML elements: ${stack.join(", ")}`);
 }
 
-function renderWithBrowserStubs(pathname, search = "", FormDataClass = FormData) {
+function renderWithBrowserStubs(pathname, search = "", FormDataClass = FormData, overrides = {}) {
   const attributes = new Map();
   const meta = (key, initial = "") => {
     const item = {
@@ -92,9 +94,10 @@ function renderWithBrowserStubs(pathname, search = "", FormDataClass = FormData)
       return attributes.get(key) || meta(key);
     },
     querySelectorAll() { return []; },
+    getElementById() { return null; },
   };
   const location = new URL(`http://avenox.local${pathname}${search}`);
-  const history = { scrollRestoration: "auto", pushState() {} };
+  const history = { scrollRestoration: "auto", pushed: [], pushState(_state, _title, url) { this.pushed.push(url); } };
   const window = {
     location,
     history,
@@ -108,9 +111,10 @@ function renderWithBrowserStubs(pathname, search = "", FormDataClass = FormData)
     URL, URLSearchParams, FormData: FormDataClass, Blob,
     console, setTimeout, clearTimeout,
     requestAnimationFrame(callback) { callback(); },
+    ...overrides,
   };
   vm.runInNewContext(browserSource, context, { timeout: 1500, filename: "src/main.js" });
-  return { app, document, attributes, listeners: document.listeners };
+  return { app, document, attributes, history, listeners: document.listeners };
 }
 
 // Social preview must be a light, correctly sized PNG using only the approved mark and brand typography.
@@ -324,10 +328,11 @@ for (const field of ["name", "email", "service", "message"]) {
 }
 assert.match(contact, /aria-live="polite"/, "Contact success state should be announced accessibly");
 assert.match(contact, /has no email or backend connection/, "Contact form must explain that delivery is not connected");
-assert.match(contact, /After preparation, copy or download the brief on this device/, "Contact form must explain what happens after preparation");
+assert.match(contact, /nothing you type is sent anywhere and this website does not save it/, "Contact form must say plainly that nothing is sent or saved");
+assert.match(contact, /only builds a text summary in this browser tab, which you can copy or download/, "Contact form must explain what happens after preparation");
 assert.match(browserSource, /FORM DELIVERY INTEGRATION POINT/, "The future delivery integration point should be obvious in code");
-assert.match(browserSource, /Future delivery recipient: studioavenox@gmail\.com/, "The future server-side recipient should be documented at the integration point");
-assert.match(browserSource, /has <strong>not<\/strong> been sent or stored/, "Contact success state must clearly explain that the brief was not sent");
+assert.match(browserSource, /Configure the recipient and any provider credentials server-side/, "The integration point should say that the recipient and credentials belong server-side");
+assert.match(browserSource, /has <strong>not<\/strong> been sent to Avenox Studio or anyone else, and this website has not saved it/, "Contact success state must clearly explain that the brief was not sent or saved");
 assert.match(browserSource, /COPY BRIEF[\s\S]*DOWNLOAD BRIEF/, "Prepared brief should offer copy and download actions");
 assert.doesNotMatch(browserSource, /fetch\s*\(|XMLHttpRequest|mailto:/i, "Contact form should not imply or attempt delivery without a backend");
 assert.match(contact, /value="NEO"/, "Project context should prefill the project field");
@@ -349,7 +354,7 @@ assert.match(rendered404, /THIS PAGE<br \/><span>DOESN'T EXIST\.<\/span>/, "Clie
 assert.match(rendered404, />RETURN HOME <span aria-hidden="true">→<\/span>/, "Client 404 should offer a return-home action");
 assert.doesNotMatch(rendered404, /The page may have moved|VIEW OUR WORK/, "Client 404 should avoid extra copy and competing actions");
 
-function testSubmission({ nameValue, emailValue = "person@example.com", serviceValue = "web", messageValue = "A considered digital project.", expectSuccess, invalidField = "name" }) {
+function testSubmission({ nameValue, emailValue = "person@example.com", serviceValue = "web", messageValue = "A considered digital project.", expectSuccess, invalidField = "name", inspect }) {
   class TestFormData {
     constructor(target) { this.values = target.values; }
     get(key) { return this.values[key]; }
@@ -357,11 +362,11 @@ function testSubmission({ nameValue, emailValue = "person@example.com", serviceV
   const { listeners } = renderWithBrowserStubs("/contact", "", TestFormData);
   const fields = {
     name: { value: nameValue, customValidity: "", setCustomValidity(value) { this.customValidity = value; }, setAttribute(name, value) { this[name] = value; }, focus() { this.focused = true; } },
-    email: { value: emailValue, setAttribute(name, value) { this[name] = value; }, focus() { this.focused = true; } },
+    email: { value: emailValue, customValidity: "", setCustomValidity(value) { this.customValidity = value; }, setAttribute(name, value) { this[name] = value; }, focus() { this.focused = true; } },
     business: { value: "A project" },
     service: { value: serviceValue, setAttribute(name, value) { this[name] = value; }, focus() { this.focused = true; } },
     budget: { value: "Not sure yet" },
-    message: { value: messageValue, setAttribute(name, value) { this[name] = value; }, focus() { this.focused = true; } },
+    message: { value: messageValue, customValidity: "", setCustomValidity(value) { this.customValidity = value; }, setAttribute(name, value) { this[name] = value; }, focus() { this.focused = true; } },
   };
   const result = { hidden: true, innerHTML: "", scrollIntoView() {} };
   const form = {
@@ -375,9 +380,9 @@ function testSubmission({ nameValue, emailValue = "person@example.com", serviceV
       const emailValid = emailParts.length === 2 && Boolean(emailParts[0]) && emailParts[1].includes(".") && emailParts.every((part) => part.trim() === part);
       const checks = [
         ["name", Boolean(fields.name.customValidity) || !fields.name.value.trim()],
-        ["email", !emailValid],
+        ["email", !emailValid || Boolean(fields.email.customValidity)],
         ["service", !fields.service.value],
-        ["message", fields.message.value.trim().length < 12],
+        ["message", fields.message.value.trim().length < 12 || Boolean(fields.message.customValidity)],
       ];
       this.invalidField = checks.find(([, invalid]) => invalid)?.[0] || "";
       return !this.invalidField;
@@ -395,8 +400,9 @@ function testSubmission({ nameValue, emailValue = "person@example.com", serviceV
   assert.ok(prevented, "Contact form must not post to an unconfigured backend");
   if (expectSuccess) {
     assert.equal(result.hidden, false, "Valid inquiry should show its confirmation state");
-    assert.match(result.innerHTML, /has <strong>not<\/strong> been sent or stored/);
+    assert.match(result.innerHTML, /has <strong>not<\/strong> been sent to Avenox Studio or anyone else/);
     assert.match(form.dataset.brief, /person@example\.com/);
+    inspect?.(form.dataset.brief);
   } else {
     assert.equal(result.hidden, true, "Invalid inquiry must not show success");
     assert.equal(fields[invalidField]["aria-invalid"], "true", "Invalid field should be marked for assistive technology");
@@ -410,6 +416,23 @@ testSubmission({ nameValue: "Avery", emailValue: "not-an-email", expectSuccess: 
 testSubmission({ nameValue: "Avery", serviceValue: "", expectSuccess: false, invalidField: "service" });
 testSubmission({ nameValue: "Avery", messageValue: "Short", expectSuccess: false, invalidField: "message" });
 testSubmission({ nameValue: "Avery", expectSuccess: true });
+// Hardened validation: whitespace-only content, malformed addresses and hidden characters.
+testSubmission({ nameValue: "Avery", messageValue: "              ", expectSuccess: false, invalidField: "message" });
+testSubmission({ nameValue: "Avery", messageValue: "\u200B\u202E\u0000          \u202E", expectSuccess: false, invalidField: "message" });
+testSubmission({ nameValue: "\u202E\u0000 \u200B", expectSuccess: false, invalidField: "name" });
+testSubmission({ nameValue: "Avery", emailValue: "a@b", expectSuccess: false, invalidField: "email" });
+testSubmission({ nameValue: "Avery", emailValue: "a@@b.com", expectSuccess: false, invalidField: "email" });
+testSubmission({ nameValue: "Avery", emailValue: "a b@c.com", expectSuccess: false, invalidField: "email" });
+testSubmission({
+  nameValue: "Avery\u202E\u0000Evil\nEmail: forged@example.com",
+  messageValue: "Line one\r\nLine two \u202E hidden \u0000 text",
+  expectSuccess: true,
+  inspect(brief) {
+    assert.doesNotMatch(brief, /[\u0000\u200B\u202A-\u202E\u2066-\u2069]/, "Brief must not contain control or bidirectional-override characters");
+    assert.doesNotMatch(brief, /^Email: forged@example\.com/m, "A field must not be able to forge another line of the brief");
+    assert.match(brief, /Message:\nLine one\nLine two {1,2}hidden {1,2}text/, "Message line breaks should be normalised and hidden characters removed");
+  },
+});
 
 const css = await readFile(path.join(root, "src/styles.css"), "utf8");
 assert.ok(css.includes("min-width: 320px"), "320px minimum viewport support is missing");
@@ -450,4 +473,191 @@ for (const background of [paper, "#f0f0eb", "#ecece7", "#f1f1ec"]) {
 }
 assert.doesNotMatch(browserSource, /(?:localhost|127\.0\.0\.1)/i, "Browser code must not call a local service");
 
-console.log(`QA passed (static route and browser-stub checks): ${ROUTES.length} route builds, client rendering, internal links, imagery, route metadata, legal placeholders, contact flow, responsive CSS, accessibility tokens and reduced-motion support. No real-browser visual pass is performed by this script.`);
+// ---------------------------------------------------------------------------------------------
+// Security and privacy guardrails
+// ---------------------------------------------------------------------------------------------
+const siteDataSource = await readFile(path.join(root, "src/site-data.js"), "utf8");
+const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+/gi;
+const allowedPlaceholderEmails = new Set(["you@example.com"]);
+for (const [name, rawSource] of [["src/main.js", browserSource], ["src/site-data.js", siteDataSource]]) {
+  // The legal copy names the storage APIs it says are unused, so scan the executable code around it.
+  const source = rawSource.replace(/const LEGAL_CONTENT = \{[\s\S]*?\n\};\n/, "");
+  assert.ok(source.length > 1000, `${name}: code scan should cover the file`);
+  assert.doesNotMatch(source, /localStorage|sessionStorage|indexedDB|document\.cookie|sendBeacon|WebSocket|EventSource|XMLHttpRequest|\bfetch\s*\(|importScripts|serviceWorker|\beval\s*\(|new Function|document\.write|insertAdjacentHTML|outerHTML|dangerouslySetInnerHTML|postMessage|window\.open|mailto:|javascript:/, `${name}: contains a storage, network, dynamic-code or unsafe-HTML API that the privacy policy and CSP rely on being absent`);
+  assert.doesNotMatch(source, /https?:\/\//i, `${name}: must not contain external URLs (the CSP is same-origin only)`);
+  const emails = (source.match(emailPattern) || []).filter((address) => !allowedPlaceholderEmails.has(address.toLowerCase()));
+  assert.deepEqual(emails, [], `${name}: must not publish an email address in client code`);
+}
+assert.equal((browserSource.match(/\.innerHTML\s*=/g) || []).length, 2, "Only the page renderer and the static form-result state may assign innerHTML");
+assert.doesNotMatch(browserSource, /\b(?:target="_blank"|on(?:click|error|load|submit|focus)=)/i, "Templates must not use inline event handlers or target=_blank");
+
+// Untrusted URL parameters must be escaped, and hidden or bidirectional characters removed.
+{
+  const attack = '<img src=x onerror=alert(1)>"><script>alert(2)</script>';
+  const html = renderWithBrowserStubs("/contact", `?project=${encodeURIComponent(attack)}&service=${encodeURIComponent('"><script>alert(3)</script>')}`).app.innerHTML;
+  assert.ok(!html.includes("<img src=x"), "Project parameter must not inject an element");
+  assert.doesNotMatch(html, /<script/i, "URL parameters must not inject a script element");
+  assert.ok(html.includes("&lt;img src=x onerror=alert(1)&gt;"), "Project parameter should be shown only as escaped text");
+  assert.ok(!/<option value="[a-z]+" selected>/.test(html), "An unknown service parameter must not select a service");
+  const spoof = renderWithBrowserStubs("/contact", `?project=${encodeURIComponent("A\u202EB\u0000C\nD")}`).app.innerHTML;
+  assert.doesNotMatch(spoof, /[\u0000\u202A-\u202E\u2066-\u2069]/, "Project parameter must not carry bidirectional-override or control characters");
+  const long = renderWithBrowserStubs("/contact", `?project=${"x".repeat(5000)}`).app.innerHTML;
+  assert.ok(!long.includes("x".repeat(121)), "Project parameter must be length-limited");
+}
+
+// Navigation must tolerate malformed hashes and never push a protocol-relative URL.
+{
+  const { listeners, history } = renderWithBrowserStubs("/");
+  const click = listeners.find(([type]) => type === "click")[1];
+  const fire = (href) => click({
+    defaultPrevented: false, button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false,
+    preventDefault() {},
+    target: { closest(selector) { return selector === "a[data-link], a[data-scroll]" ? { href, target: "", hasAttribute: () => false } : null; } },
+  });
+  assert.doesNotThrow(() => fire("http://avenox.local/work#%E0%A4%A"), "A malformed percent-escape in the hash must not throw");
+  assert.doesNotThrow(() => fire("http://avenox.local/work#%"), "A bare percent sign in the hash must not throw");
+  fire("http://avenox.local//privacy");
+  assert.ok(history.pushed.length >= 3 && history.pushed.every((url) => !url.startsWith("//")), "History entries must never start with //");
+}
+
+// A rendering failure must show a clean, generic state with no implementation detail.
+{
+  const failed = renderWithBrowserStubs("/", "", FormData, { SERVICES: null }).app.innerHTML;
+  assert.match(failed, /COULD NOT LOAD/, "A render failure should show the clean error state");
+  assert.doesNotMatch(failed, /TypeError|Cannot read|undefined|null|\bat \S+:\d+|main\.js|node:|\/home\//i, "The error state must not reveal stack traces, file names or paths");
+  assert.match(failed, /href="\/"[^>]*>RETURN HOME/, "The error state should offer a way home");
+}
+
+// Privacy copy must describe the real implementation: nothing sent, saved or tracked today.
+for (const route of ["/privacy", "/cookies"]) {
+  const page = renderWithBrowserStubs(route).app.innerHTML;
+  assert.match(page, /What the website does today/, `${route}: must separate current behaviour from later changes`);
+  assert.match(page, /What may be added later/, `${route}: must say that future services are not part of the current site`);
+}
+{
+  const privacy = renderWithBrowserStubs("/privacy").app.innerHTML;
+  const cookies = renderWithBrowserStubs("/cookies").app.innerHTML;
+  assert.match(privacy, /does not send it to Avenox Studio or any third party, does not save it on a server and does not write it to cookies or browser storage/, "Privacy must state what the form does");
+  assert.match(cookies, /sets no cookies and does not use localStorage, sessionStorage or IndexedDB/, "Cookies page must state the current storage behaviour");
+  assert.doesNotMatch(`${privacy}${cookies}`, /we (?:collect|store|track|share|sell)|your (?:data|information) is (?:stored|collected|shared)/i, "Legal copy must not claim collection that the site does not perform");
+  assert.match(renderWithBrowserStubs("/terms").app.innerHTML, /does not send it to Avenox Studio[\s\S]*\[add contact method\]/, "Terms must say the form does not send an inquiry and keep the contact-method placeholder");
+}
+
+// Security headers: a strict, same-origin policy that matches what the site actually loads.
+const headerRule = vercelConfig.headers?.find((rule) => rule.source === "/(.*)");
+assert.ok(headerRule, "vercel.json must apply security headers to every route");
+const configuredHeaders = Object.fromEntries(headerRule.headers.map(({ key, value }) => [key.toLowerCase(), value]));
+const csp = configuredHeaders["content-security-policy"];
+assert.ok(csp, "A Content-Security-Policy must be configured");
+const cspDirectives = Object.fromEntries(csp.split(";").map((part) => part.trim()).filter(Boolean).map((part) => { const [name, ...values] = part.split(/\s+/); return [name, values]; }));
+assert.deepEqual(cspDirectives["default-src"], ["'self'"], "CSP default-src must be 'self'");
+assert.deepEqual(cspDirectives["script-src"], ["'self'"], "CSP script-src must be 'self' only");
+assert.deepEqual(cspDirectives["style-src"], ["'self'"], "CSP style-src must be 'self' only (the site uses no inline styles)");
+assert.deepEqual(cspDirectives["img-src"], ["'self'", "data:"], "CSP img-src should allow same-origin and the data: SVG select arrow only");
+for (const directive of ["object-src", "frame-src", "worker-src", "media-src"]) assert.deepEqual(cspDirectives[directive], ["'none'"], `CSP ${directive} must be 'none'`);
+assert.deepEqual(cspDirectives["frame-ancestors"], ["'none'"], "The site must not be frameable");
+assert.deepEqual(cspDirectives["base-uri"], ["'self'"], "CSP base-uri must be 'self'");
+assert.deepEqual(cspDirectives["form-action"], ["'self'"], "CSP form-action must be 'self'");
+assert.ok("upgrade-insecure-requests" in cspDirectives, "CSP should upgrade insecure requests in production");
+assert.doesNotMatch(csp, /unsafe-inline|unsafe-eval|unsafe-hashes|\*|https?:/, "CSP must not use unsafe keywords, wildcards or external origins");
+assert.equal(configuredHeaders["x-content-type-options"], "nosniff");
+assert.equal(configuredHeaders["referrer-policy"], "strict-origin-when-cross-origin");
+assert.match(configuredHeaders["permissions-policy"], /camera=\(\).*microphone=\(\).*geolocation=\(\)/, "Permissions-Policy should disable unused sensitive features");
+assert.equal(configuredHeaders["x-frame-options"], "DENY");
+assert.equal(configuredHeaders["cross-origin-opener-policy"], "same-origin");
+
+// Published output: allowlisted file types only, no dotfiles, no inline script/style, no email addresses.
+{
+  const allowedTypes = new Set([".html", ".js", ".css", ".txt", ".xml", ".svg", ".png", ".webp", ".jpg", ".jpeg", ".ico"]);
+  const files = (await readdir(dist, { recursive: true, withFileTypes: true })).filter((entry) => entry.isFile());
+  assert.ok(files.length > 10, "dist should contain the built site");
+  for (const entry of files) {
+    const relative = path.relative(dist, path.join(entry.parentPath ?? entry.path, entry.name));
+    assert.ok(!relative.split(path.sep).some((part) => part.startsWith(".")), `dist must not contain dotfiles: ${relative}`);
+    assert.ok(allowedTypes.has(path.extname(entry.name).toLowerCase()), `dist contains an unexpected file type: ${relative}`);
+    if ([".html", ".js", ".css", ".txt", ".xml", ".svg"].includes(path.extname(entry.name).toLowerCase())) {
+      const text = await readFile(path.join(dist, relative), "utf8");
+      const emails = (text.match(emailPattern) || []).filter((address) => !allowedPlaceholderEmails.has(address.toLowerCase()));
+      assert.deepEqual(emails, [], `dist/${relative} must not publish an email address`);
+      assert.doesNotMatch(text, /sourceMappingURL|-----BEGIN [A-Z ]*PRIVATE KEY|sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{30,}|ghp_[A-Za-z0-9]{30,}/, `dist/${relative} must not reference source maps or contain credential-like strings`);
+      if (relative.endsWith(".html")) {
+        assert.doesNotMatch(text, /<script(?![^>]*\bsrc=)/i, `dist/${relative}: inline scripts would require an unsafe CSP`);
+        assert.doesNotMatch(text, /<style\b|\sstyle=|\son[a-z]+=/i, `dist/${relative}: inline styles or event handlers would require an unsafe CSP`);
+        assert.doesNotMatch(text, /<(?:iframe|object|embed|form)\b/i, `dist/${relative}: static HTML must not embed frames or objects`);
+      }
+    }
+  }
+}
+
+// The local servers: robust against malformed requests, no repository leakage, same headers as production.
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.listen(0, "127.0.0.1", () => { const { port } = probe.address(); probe.close(() => resolve(port)); });
+    probe.on("error", reject);
+  });
+}
+function rawRequest(port, method, target) {
+  return new Promise((resolve, reject) => {
+    const socket = net.connect(port, "127.0.0.1");
+    const chunks = [];
+    socket.setTimeout(5000, () => { socket.destroy(); reject(new Error(`timeout for ${target}`)); });
+    socket.on("data", (chunk) => chunks.push(chunk));
+    socket.on("error", reject);
+    socket.on("close", () => {
+      const text = Buffer.concat(chunks).toString("latin1");
+      const separator = text.indexOf("\r\n\r\n");
+      const head = text.slice(0, separator).split("\r\n");
+      const headers = Object.fromEntries(head.slice(1).map((line) => { const at = line.indexOf(":"); return [line.slice(0, at).toLowerCase(), line.slice(at + 1).trim()]; }));
+      resolve({ status: Number(head[0].split(" ")[1]), headers, body: text.slice(separator + 4) });
+    });
+    socket.write(`${method} ${target} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n`);
+  });
+}
+async function withServer(mode, run) {
+  const port = await freePort();
+  const child = spawn(process.execPath, [path.join(root, "scripts/server.mjs"), mode], { env: { ...process.env, PORT: String(port), HOST: "127.0.0.1" }, stdio: ["ignore", "pipe", "pipe"] });
+  let stderr = "";
+  child.stderr.on("data", (chunk) => { stderr += chunk; });
+  await new Promise((resolve, reject) => {
+    child.stdout.on("data", (chunk) => { if (String(chunk).includes("listening")) resolve(); });
+    child.on("exit", (code) => reject(new Error(`server exited early (${code}): ${stderr}`)));
+    setTimeout(() => reject(new Error("server did not start")), 8000);
+  });
+  try {
+    await run(port);
+    assert.equal(child.exitCode, null, `${mode} server must still be running after the probes (stderr: ${stderr})`);
+    assert.equal(stderr, "", `${mode} server must not print errors for malformed requests`);
+  } finally {
+    child.kill();
+  }
+}
+const expectedLocalCsp = csp.replace(/;?\s*upgrade-insecure-requests/, "");
+const hostileTargets = ["//", "//evil.com/x", "/%E0%A4%A", "/%00", "/..%2f..%2fpackage.json", "/%2e%2e/%2e%2e/package.json", "/../package.json", "/assets/../../package.json", "/.env.example", "/.git/HEAD", "/.git/config", "/package.json", "/package-lock.json", "/vercel.json", "/README.md", "/scripts/server.mjs", "/scripts/qa.mjs", "/src/../package.json", "/src/%2e%2e/package.json", "/PORTFOLIO-ASSETS.md", "/%5c..%5cpackage.json"];
+for (const mode of ["--preview", "--dev"]) {
+  await withServer(mode, async (port) => {
+    for (const target of hostileTargets) {
+      const response = await rawRequest(port, "GET", target);
+      assert.ok([200, 400, 403, 404].includes(response.status), `${mode} ${target}: unexpected status ${response.status}`);
+      assert.doesNotMatch(response.body, /"name":\s*"avenox-website"|SITE_ORIGIN=|# AVENOX|import assert|createServer|\[core\]/, `${mode} ${target}: served a repository file`);
+      assert.doesNotMatch(response.body, /Error:|TypeError|\bat \S+ \(|\/home\/|node_modules/, `${mode} ${target}: error responses must not leak stack traces or paths`);
+      assert.equal(response.headers["x-content-type-options"], "nosniff", `${mode} ${target}: missing nosniff`);
+    }
+    for (const target of ["/.env.example", "/package.json", "/scripts/server.mjs", "/README.md", "/vercel.json", "/.git/HEAD", "/.git/config"]) {
+      assert.equal((await rawRequest(port, "GET", target)).status, 404, `${mode} ${target}: repository files must not be served`);
+    }
+    const home = await rawRequest(port, "GET", "/");
+    assert.equal(home.status, 200, `${mode}: home page should load`);
+    assert.equal(home.headers["content-security-policy"], expectedLocalCsp, `${mode}: local servers should send the production CSP`);
+    for (const key of ["x-content-type-options", "referrer-policy", "permissions-policy", "x-frame-options", "cross-origin-opener-policy"]) {
+      assert.equal(home.headers[key], configuredHeaders[key], `${mode}: ${key} should match vercel.json`);
+    }
+    const image = await rawRequest(port, "GET", "/projects/neo/neo-command-center-desktop.webp");
+    assert.equal(image.status, 200, `${mode}: portfolio images must be served`);
+    assert.equal(image.headers["content-type"], "image/webp");
+    assert.equal((await rawRequest(port, "POST", "/")).status, 405, `${mode}: only GET and HEAD are allowed`);
+    assert.equal((await rawRequest(port, "GET", "/does-not-exist/")).status, mode === "--preview" ? 404 : 200, `${mode}: unknown routes use the 404 page or the app shell`);
+  });
+}
+
+console.log(`QA passed (static route and browser-stub checks): ${ROUTES.length} route builds, client rendering, internal links, imagery, route metadata, legal placeholders, contact flow, responsive CSS, accessibility tokens, reduced-motion support, security headers/CSP policy, published-output hygiene, untrusted-input handling, privacy-copy accuracy and local-server hardening. No real-browser visual pass is performed by this script.`);

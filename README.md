@@ -21,7 +21,7 @@ npm run dev      # source-based development server, default port 4173
 npm run preview  # static dist/ preview, default port 4174
 ```
 
-`npm ci` installs from the committed lockfile (there are currently no packages to install). Both servers accept an optional `PORT` override. `npm run qa` rebuilds `dist/` and checks generated routes, metadata, links and assets, accessibility-related markup, responsive CSS, the mobile-menu behavior, and contact-form behavior using browser stubs. It is not a substitute for a real-browser visual/console check or a deployed-host smoke test. The repository has no configured lint tool; syntax checks can be run without extra packages with `node --check` on the JavaScript files.
+`npm ci` installs from the committed lockfile (there are currently no packages to install). Both servers accept optional `PORT` and `HOST` overrides (they bind to all interfaces by default; set `HOST=127.0.0.1` to keep them reachable only from this machine). `npm run qa` rebuilds `dist/` and checks generated routes, metadata, links and assets, accessibility-related markup, responsive CSS, the mobile-menu behavior, and contact-form behavior using browser stubs. It is not a substitute for a real-browser visual/console check or a deployed-host smoke test. The repository has no configured lint tool; syntax checks can be run without extra packages with `node --check` on the JavaScript files.
 
 The build output is `dist/`. It excludes source scripts, repository documentation and the editable social-card SVG source. `dist/` and `node_modules/` are ignored by Git.
 
@@ -31,6 +31,7 @@ The build output is `dist/`. It excludes source scripts, repository documentatio
 | --- | --- | --- |
 | `SITE_ORIGIN` | Build-time; required by `npm run build:production` | The selected canonical public HTTPS origin. Used for absolute canonical/Open Graph URLs, the sitemap, and the sitemap entry in `robots.txt`. |
 | `PORT` | Optional, local dev/preview server only | Overrides the local server port (defaults to 4173 for `dev`, 4174 for `preview`). It is not used by the static production output. |
+| `HOST` | Optional, local dev/preview server only | Overrides the bind address (default `0.0.0.0`). It is not used by the static production output. |
 
 No other project environment variables are read. `SITE_ORIGIN` is public configuration, not a secret; it must be the exact origin only (HTTPS, no path, query or fragment). Keep it blank until the real domain and canonical host are chosen. `.env.example` is a blank reference template and is **not** auto-loaded by these Node scripts. Do not add credentials or a guessed domain to it.
 
@@ -68,7 +69,7 @@ The approved favicon reuses the existing AVENOX mark; no replacement logo has be
 
 The form validates the required fields and prepares a brief locally in the visitor's browser. It does **not** send or store the details; visitors can copy or download the brief on their own device. No email provider, backend endpoint, API key, delivery credentials or contact-related environment variable is configured.
 
-The intended future recipient is **studioavenox@gmail.com**; that address is not connected to the current form and no email is sent there. The documented `FORM DELIVERY INTEGRATION POINT` is in `submitInquiry` in `src/main.js`. When an email provider is selected, connect a verified server-side endpoint there; keep provider credentials on the server, add validation and spam/rate-limit protections, and only report delivery after the endpoint confirms it. Update the privacy/cookie disclosures to match the actual provider and data handling. Do not send messages directly from client-side JavaScript.
+No delivery address is stored in this repository or in the shipped JavaScript. The documented `FORM DELIVERY INTEGRATION POINT` is in `submitInquiry` in `src/main.js`. When an email provider is selected, connect a verified server-side endpoint there; keep the recipient address and provider credentials in server-side environment variables (never in client code or Git), re-validate every field on the server, add spam and rate-limit protection (for example a honeypot field plus per-IP limits or a bot challenge), strip line breaks from anything placed in an email header, and only report delivery after the endpoint confirms it. The CSP in `vercel.json` currently sets `connect-src 'self'` and `form-action 'self'`, so the endpoint must be same-origin or the policy must be deliberately widened for that one host. Update the privacy/cookie disclosures to match the actual provider and data handling. Do not send messages directly from client-side JavaScript.
 
 ## Launch tasks still requiring verified information
 
@@ -82,9 +83,22 @@ The Privacy, Cookies and Terms pages intentionally retain visible placeholders. 
 | `[business contact email]` | Terms | Monitored business contact for terms questions. |
 | `[add hosting and retention details]` | Privacy | Actual host/log providers, collected data, retention, legal basis and safeguards. |
 | `[complete before launch]` | Privacy | Applicable rights, request process, legal bases, retention details and supervisory authority. |
+| `[confirm that hosting-level analytics are off, or describe them]` | Privacy | Whether any analytics or similar feature is enabled in the hosting dashboard (this is outside the repository code). |
+| `[add contact method]` | Terms | The published way for visitors to actually contact the studio (the form does not send anything). |
 | `[add provider and cookie details if applicable]` | Cookies | Actual hosting/third-party services, cookies or similar storage, purposes/lifetimes, and required consent controls. |
 | `[jurisdiction and legal wording to be supplied]` | Terms | Reviewed jurisdiction-specific warranty, liability and consumer-rights wording. |
 | `[insert applicable jurisdiction after legal review]` | Terms | Confirmed governing law, venue and dispute process. |
 | `[date to be added]` | Privacy, Cookies, Terms | Actual review and approval dates. |
 
 Before launch, also confirm rights to the site's text, project names and every visual asset. Select the real domain/canonical host, configure DNS and HTTPS, build with its `SITE_ORIGIN`, and complete the post-deploy route, 404, asset and SEO checks. Email delivery remains a separate, optional backend integration and is not active in this version.
+
+## Security and privacy
+
+Reviewed 2026-10-02. This is a static site with no backend, no dependencies and no secrets; that removes whole classes of risk, but it is not a guarantee. See the report in the pull request for evidence and remaining risks.
+
+- **Secrets:** none are required or present. `.env`, `.env.*` (except `.env.example`), keys and certificates are git-ignored. `.env.example` holds only the public `SITE_ORIGIN` setting. Never put credentials in `public/`, `src/` or client-side code.
+- **Headers** (`vercel.json`, applied to every response and also sent by the local servers): a same-origin Content-Security-Policy (no inline scripts or styles, no third-party origins, no framing, `object-src 'none'`), `X-Content-Type-Options`, `Referrer-Policy`, a restrictive `Permissions-Policy`, `X-Frame-Options` and `Cross-Origin-Opener-Policy`. HSTS is not set in the file: Vercel serves it on its HTTPS domains by default; if the site is hosted elsewhere, configure HSTS there (and decide separately about `includeSubDomains`/`preload`, which are hard to reverse). Adding any script, font, embed, analytics or form endpoint requires a deliberate CSP change.
+- **Tracking:** none. No analytics, pixels, third-party scripts or fonts, cookies, `localStorage`/`sessionStorage`/IndexedDB, `fetch`/XHR or beacons. `npm run qa` fails if these appear in the shipped JavaScript.
+- **Untrusted input:** the only inputs are the contact-form fields and the `project`/`service` URL parameters. Text is cleaned (control and bidi-override characters removed, lengths capped) and HTML-escaped before display; `service` is matched against a fixed list. There are no external links, redirects or `target="_blank"` links.
+- **Static assets:** only files under `public/` are published, and the build copies an allowlist of file types and no dotfiles. `npm run qa` fails if anything unexpected reaches `dist/`.
+- **Local servers:** `npm run dev` serves only `src/` and `public/` (never `package.json`, scripts, env files or `.git`); both servers answer malformed requests with generic errors and do not crash or print paths.

@@ -14,6 +14,20 @@ const escapeHtml = (value = "") =>
     "'": "&#39;",
   })[character]);
 
+// Untrusted text (URL parameters, form fields) is reduced to plain, visible characters before it
+// is shown or written into a brief: control characters and bidirectional-override characters
+// (which can visually reorder or spoof text) are removed. Scripts, emoji and joiners stay intact.
+const HIDDEN_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u200B\u200E\u200F\u2028-\u202E\u2066-\u2069\uFEFF]/g;
+const cleanLine = (value = "", max = 160) =>
+  String(value ?? "").replace(HIDDEN_CHARACTERS, " ").replace(/\s+/g, " ").trim().slice(0, max);
+const cleanMessage = (value = "", max = 4000) =>
+  String(value ?? "").replace(/\r\n?/g, "\n").replace(HIDDEN_CHARACTERS, "").trim().slice(0, max);
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
+// A malformed percent-escape in the URL hash must never throw out of an event handler.
+const safeDecode = (value) => {
+  try { return decodeURIComponent(value); } catch { return ""; }
+};
+
 function normalizePath(pathname) {
   if (pathname === "/404.html") return "/404";
   const clean = pathname.replace(/\/{2,}/g, "/").replace(/\/$/, "");
@@ -293,7 +307,7 @@ function aboutPage() {
 function contactPage() {
   const params = new URLSearchParams(window.location.search);
   const chosenService = SERVICES.find((service) => service.slug === params.get("service"));
-  const project = (params.get("project") || "").slice(0, 120);
+  const project = cleanLine(params.get("project"), 120);
   const serviceOptions = SERVICES.map((service) => `
     <option value="${service.slug}"${chosenService?.slug === service.slug ? " selected" : ""}>${service.name}</option>`).join("");
 
@@ -343,7 +357,7 @@ function contactPage() {
             </div>
           </div>
           <div class="form-bottom">
-            <p id="form-note">Required fields are marked with <span aria-hidden="true">*</span>. This form has no email or backend connection; your details are not sent or stored. After preparation, copy or download the brief on this device.</p>
+            <p id="form-note">Required fields are marked with <span aria-hidden="true">*</span>. This form has no email or backend connection, so nothing you type is sent anywhere and this website does not save it. Preparing a brief only builds a text summary in this browser tab, which you can copy or download.</p>
             <button class="button button--dark" type="submit">PREPARE MY BRIEF <span aria-hidden="true">↗</span></button>
           </div>
           <div class="form-result" id="form-result" role="status" aria-live="polite" hidden></div>
@@ -356,12 +370,13 @@ const LEGAL_CONTENT = {
   privacy: {
     kicker: "Privacy",
     title: "PRIVACY,<br /><span>IN PLAIN WORDS.</span>",
-    intro: "This summary covers information handled when someone visits the site or prepares an inquiry brief.",
+    intro: "This summary covers information handled when someone visits the site or prepares an inquiry brief, and separates what the website does today from what may be added later.",
     sections: [
       ["Who is responsible", "The data controller is [legal business name], of [registered business address]. For privacy questions, contact [privacy contact email]. These business details must be supplied before this policy is relied on."],
-      ["Information on this website", "The inquiry form currently runs only in your browser. Preparing a brief does not transmit it to Avenox Studio or save it on this website. Copying or downloading a brief happens only when you choose those browser actions. Do not enter sensitive personal information."],
+      ["What the website does today", "The inquiry form runs only in your browser. Choosing Prepare my brief builds a text summary from what you typed, inside this browser tab. The website does not send it to Avenox Studio or any third party, does not save it on a server and does not write it to cookies or browser storage. The brief stays in the tab until you copy it, download it, edit it, or reload or leave the page. A downloaded file is saved on your own device only when you choose Download. Links such as /contact?project=NEO only pre-fill the project field in your browser. Do not enter sensitive personal information."],
       ["Hosting and server logs", "The hosting provider may process technical request data, such as an IP address, browser details and requested page, in server logs. The provider, retention period, legal basis and applicable safeguards must be confirmed by the site operator: [add hosting and retention details]."],
-      ["Cookies and analytics", "This version of the website does not add analytics, advertising pixels or non-essential cookies. See the Cookie Policy for current details. Update this section if analytics or other services are added."],
+      ["Cookies, analytics and third parties", "The website's code contains no analytics, advertising pixels, tracking scripts, embedded third-party services or third-party fonts, and it sets no cookies. Its scripts, styles, fonts and images all load from the website's own address. Features that a hosting platform can switch on outside this code, such as hosting analytics, are not part of the code and must be confirmed in the deployment settings: [confirm that hosting-level analytics are off, or describe them]. See the Cookie Policy for current details."],
+      ["What may be added later", "None of the following is connected today: email or form delivery, a database or CRM, analytics, a consent tool, user accounts or newsletters. If any is added, this policy must be updated before it goes live to say what is collected, who receives it, why, for how long and on what legal basis. Until then, Avenox Studio does not receive inquiries through this website."],
       ["Your choices and rights", "Depending on where you live, you may have rights to access, correct, delete or restrict the use of personal information. Add the applicable process, legal bases, retention details and supervisory authority here after jurisdiction-specific review: [complete before launch]."],
       ["Changes to this policy", "If the website's data practices change, this policy should be updated before the new practice is introduced. Last reviewed: [date to be added]."],
     ],
@@ -371,8 +386,9 @@ const LEGAL_CONTENT = {
     title: "A SMALL NOTE<br /><span>ON COOKIES.</span>",
     intro: "A snapshot of the current site setup. Confirm it against the live hosting, analytics and consent configuration.",
     sections: [
-      ["What this site uses", "The current Avenox Studio website does not set first-party cookies and does not load advertising or analytics scripts. The contact form operates in the browser and does not use cookies or local storage."],
+      ["What the website does today", "The website's code sets no cookies and does not use localStorage, sessionStorage or IndexedDB. It loads no analytics, advertising, social or other third-party scripts, and no third-party fonts or embeds. The contact form works in the browser without cookies or browser storage."],
       ["Hosting and external services", "The hosting provider or any services added later may use strictly necessary technologies or process connection data. Confirm those providers and their practices here: [add provider and cookie details if applicable]."],
+      ["What may be added later", "No analytics, consent banner, form-delivery provider or other service that could set cookies or use browser storage is connected today. If one is added, this page must be updated first, with a consent mechanism where the law requires it."],
       ["Your controls", "You can manage or block cookies in your browser settings. If optional cookies or analytics are introduced, explain their purpose and provide any consent controls required in the places where this site is offered."],
       ["Updates", "This policy must be reviewed whenever the site's technology or hosting changes. Last reviewed: [date to be added]. For questions, contact [privacy contact email]."],
     ],
@@ -385,6 +401,7 @@ const LEGAL_CONTENT = {
       ["About Avenox Studio", "This website is operated by [legal business name], of [registered business address]. Replace these placeholders with the correct legal details."],
       ["Using this website", "You may browse this website for lawful purposes. Do not misuse the site, attempt to disrupt it, or use its content in a way that infringes another person's rights."],
       ["Website content", "Copyright, licensing and use permissions for the website's text, design and imagery must be confirmed by the business before publication. Project screenshots are captured from the named projects' own source code and may show demo or prototype data; a project without a screenshot is marked as pending. Project names and visuals are shown as portfolio work and do not represent endorsements or performance claims. Confirm ownership and permissions for all final materials before launch."],
+      ["The inquiry form", "Preparing a brief on this website does not send it to Avenox Studio, so it does not create an inquiry, a project relationship or any obligation. An inquiry exists only once you send it to Avenox Studio through a contact method the studio has published: [add contact method]."],
       ["No professional or project advice", "Website content is general information, not legal, financial or technical advice for a particular situation. A project relationship, scope, fees and responsibilities exist only when agreed separately in writing."],
       ["Availability and liability", "The site is provided as available. Any limitations of liability, warranties or consumer rights must be written to comply with the law that applies to the business and visitor. Obtain local legal review before using this draft: [jurisdiction and legal wording to be supplied]."],
       ["Governing law and contact", "Governing law, venue and dispute process: [insert applicable jurisdiction after legal review]. Questions about these terms: [business contact email]. Last reviewed: [date to be added]."],
@@ -476,24 +493,42 @@ function observeReveals() {
   elements.forEach((element) => observer.observe(element));
 }
 
+// Shown if a page cannot be built. It is deliberately generic: no error text, stack trace, file
+// path or other implementation detail is ever written into the page.
+function errorPage() {
+  return `
+    <main id="main" class="not-found shell" tabindex="-1">
+      <p class="eyebrow">Something went wrong</p>
+      <h1 id="page-heading">THIS PAGE<br /><span>COULD NOT LOAD.</span></h1>
+      <p>Please reload the page, or return home.</p>
+      <a class="button button--dark" href="/" data-link>RETURN HOME <span aria-hidden="true">→</span></a>
+    </main>`;
+}
+
 function render(pathname, { focus = false } = {}) {
   const path = normalizePath(pathname);
   const known = ROUTES.some((route) => route.path === path && path !== "/404");
   const pagePath = known ? path : "/404";
-  let content;
-  switch (pagePath) {
-    case "/": content = homePage(); break;
-    case "/work": content = workPage(); break;
-    case "/services": content = servicesPage(); break;
-    case "/about": content = aboutPage(); break;
-    case "/contact": content = contactPage(); break;
-    case "/privacy": content = legalPage("privacy"); break;
-    case "/cookies": content = legalPage("cookies"); break;
-    case "/terms": content = legalPage("terms"); break;
-    default: content = notFoundPage();
+  let markup;
+  try {
+    let content;
+    switch (pagePath) {
+      case "/": content = homePage(); break;
+      case "/work": content = workPage(); break;
+      case "/services": content = servicesPage(); break;
+      case "/about": content = aboutPage(); break;
+      case "/contact": content = contactPage(); break;
+      case "/privacy": content = legalPage("privacy"); break;
+      case "/cookies": content = legalPage("cookies"); break;
+      case "/terms": content = legalPage("terms"); break;
+      default: content = notFoundPage();
+    }
+    updateMetadata(known ? pagePath : "/404");
+    markup = `${header(known ? pagePath : "")}${content}${footer()}`;
+  } catch {
+    markup = `${header("")}${errorPage()}${footer()}`;
   }
-  updateMetadata(known ? pagePath : "/404");
-  app.innerHTML = `${header(known ? pagePath : "")}${content}${footer()}`;
+  app.innerHTML = markup;
   observeReveals();
   if (focus) {
     const main = document.querySelector("#main");
@@ -517,13 +552,13 @@ function navigate(url, { focus = true } = {}) {
   const currentPath = normalizePath(window.location.pathname);
   const targetPath = normalizePath(target.pathname);
   const samePage = currentPath === targetPath && window.location.search === target.search;
-  history.pushState({}, "", `${target.pathname}${target.search}${target.hash}`);
+  history.pushState({}, "", `${target.pathname.replace(/^\/{2,}/, "/")}${target.search}${target.hash}`);
   closeMobileNav();
 
   if (samePage) {
     if (target.hash) {
       requestAnimationFrame(() => {
-        const anchor = document.getElementById(decodeURIComponent(target.hash.slice(1)));
+        const anchor = document.getElementById(safeDecode(target.hash.slice(1)));
         anchor?.scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth", block: "start" });
       });
     }
@@ -533,7 +568,7 @@ function navigate(url, { focus = true } = {}) {
   render(target.pathname, { focus });
   if (target.hash) {
     requestAnimationFrame(() => {
-      const anchor = document.getElementById(decodeURIComponent(target.hash.slice(1)));
+      const anchor = document.getElementById(safeDecode(target.hash.slice(1)));
       anchor?.scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth", block: "start" });
     });
   } else {
@@ -543,8 +578,11 @@ function navigate(url, { focus = true } = {}) {
 
 function submitInquiry(form) {
   const name = form.elements.namedItem("name");
-  const trimmedName = name.value.trim();
-  name.setCustomValidity(trimmedName ? "" : "Please enter your name.");
+  name.setCustomValidity(cleanLine(name.value, 120) ? "" : "Please enter your name.");
+  const email = form.elements.namedItem("email");
+  email.setCustomValidity(EMAIL_PATTERN.test(cleanLine(email.value, 254)) ? "" : "Please enter a valid email address.");
+  const message = form.elements.namedItem("message");
+  message.setCustomValidity(cleanMessage(message.value).length >= 12 ? "" : "Please write at least 12 characters.");
   if (!form.reportValidity()) {
     const invalid = form.querySelector(":invalid");
     invalid?.setAttribute("aria-invalid", "true");
@@ -554,30 +592,31 @@ function submitInquiry(form) {
 
   // FORM DELIVERY INTEGRATION POINT: replace this local brief-preparation flow
   // with a verified server-side endpoint only after a provider is explicitly configured.
-  // Future delivery recipient: studioavenox@gmail.com. Keep credentials server-side;
-  // until then, the contact form intentionally stays on this device.
+  // Configure the recipient and any provider credentials server-side (environment variables on
+  // the server/function), never in this file or in the repository. Until then the contact form
+  // intentionally stays in this browser tab: nothing is transmitted, logged or stored.
   const formData = new FormData(form);
   const labels = [
-    ["Name", formData.get("name")],
-    ["Email", formData.get("email")],
-    ["Business / Project", formData.get("business") || "Not provided"],
+    ["Name", cleanLine(formData.get("name"), 120)],
+    ["Email", cleanLine(formData.get("email"), 254)],
+    ["Business / Project", cleanLine(formData.get("business"), 160) || "Not provided"],
     ["Service", SERVICES.find((service) => service.slug === formData.get("service"))?.name || "Not provided"],
-    ["Budget", formData.get("budget") || "Not provided"],
+    ["Budget", cleanLine(formData.get("budget"), 120) || "Not provided"],
   ];
   const brief = [
     "AVENOX — PROJECT INQUIRY",
     "",
-    ...labels.map(([label, value]) => `${label}: ${String(value).trim()}`),
+    ...labels.map(([label, value]) => `${label}: ${value}`),
     "",
     "Message:",
-    String(formData.get("message")).trim(),
+    cleanMessage(formData.get("message")),
   ].join("\n");
   form.dataset.brief = brief;
   const result = form.querySelector("#form-result");
   result.hidden = false;
   result.innerHTML = `
     <h3 class="form-result-title">Brief prepared</h3>
-    <p>Your project brief is ready on this device. It has <strong>not</strong> been sent or stored.</p>
+    <p>Your brief is ready in this browser tab. It has <strong>not</strong> been sent to Avenox Studio or anyone else, and this website has not saved it. Copy or download it to keep it; it is discarded when you reload or leave this page.</p>
     <div class="form-result-actions">
       <button class="button button--dark" type="button" data-form-action="copy">COPY BRIEF</button>
       <button class="button button--light" type="button" data-form-action="download">DOWNLOAD BRIEF</button>
@@ -608,6 +647,7 @@ document.addEventListener("click", (event) => {
     if (!form) return;
     if (action.dataset.formAction === "edit") {
       form.querySelector("#form-result").hidden = true;
+      delete form.dataset.brief;
       form.elements.namedItem("name")?.focus();
     } else if (action.dataset.formAction === "download") {
       const blob = new Blob([form.dataset.brief || ""], { type: "text/plain;charset=utf-8" });
@@ -657,6 +697,7 @@ document.addEventListener("input", (event) => {
   if (event.target.form?.id === "inquiry-form") {
     event.target.removeAttribute("aria-invalid");
     if (event.target.name === "name" && event.target.value.trim()) event.target.setCustomValidity("");
+    if (event.target.name === "email" || event.target.name === "message") event.target.setCustomValidity?.("");
   }
 });
 
@@ -670,7 +711,7 @@ document.addEventListener("keydown", (event) => {
 window.addEventListener("popstate", () => {
   render(window.location.pathname, { focus: true });
   if (window.location.hash) {
-    requestAnimationFrame(() => document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView());
+    requestAnimationFrame(() => document.getElementById(safeDecode(window.location.hash.slice(1)))?.scrollIntoView());
   } else {
     window.scrollTo({ top: 0, behavior: "auto" });
   }
