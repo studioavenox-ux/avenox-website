@@ -87,9 +87,12 @@ function arrowLink(href, label, extraClass = "", ariaLabel = "") {
 
 
 function projectRow(project) {
+  const media = project.image
+    ? `<img src="${project.image}" alt="${escapeHtml(project.alt)}" width="1600" height="1000" loading="lazy" decoding="async" />`
+    : `<div class="project-pending" role="img" aria-label="${escapeHtml(`${project.name}: project screenshot pending`)}"><span>SCREENSHOT PENDING</span><strong>${escapeHtml(project.name)}</strong></div>`;
   const figure = `
     <figure class="project-visual ${project.className} reveal">
-      <img src="${project.image}" alt="${escapeHtml(project.alt)}" width="1600" height="1000" loading="lazy" decoding="async" />
+      ${media}
       <figcaption>${escapeHtml(project.visualLabel)}</figcaption>
     </figure>`;
   const copy = `
@@ -108,7 +111,7 @@ function selectedWork({ compact = false } = {}) {
     <section class="work-section shell section-pad" id="work" aria-labelledby="work-title">
       <div class="section-heading${compact ? " section-heading--split" : ""} reveal">
         <h2 class="section-title" id="work-title">Selected work</h2>
-        ${compact ? `<p class="section-intro">Personal AI, editorial web and map-led information design.</p>` : ""}
+        ${compact ? `<p class="section-intro">Personal AI, editorial web and academic productivity.</p>` : ""}
       </div>
       <div class="project-list">${projects.map(projectRow).join("")}</div>
       ${compact ? `<div class="work-more">${arrowLink("/work", "View all work")}</div>` : ""}
@@ -191,8 +194,8 @@ function homePage() {
           <p class="hero-aside">Design and engineering, brought into the same conversation.</p>
         </div>
         <figure class="hero-visual">
-          <img src="/images/studio-desk.webp" alt="Illustrative studio photograph of a laptop with a topographic map on a light wood desk." width="1376" height="768" fetchpriority="high" decoding="async" />
-          <figcaption>Illustrative studio image</figcaption>
+          <img src="/projects/neo/neo-command-center-desktop.webp" alt="Screenshot of the NEO command center: an anime-styled agent figure surrounded by task, workflow and system panels." width="1600" height="1000" fetchpriority="high" decoding="async" />
+          <figcaption>Real project screenshot — NEO command center</figcaption>
         </figure>
       </section>
       ${serviceSection()}
@@ -200,12 +203,12 @@ function homePage() {
       <section class="neo-feature" aria-labelledby="neo-feature-title">
         <div class="shell neo-inner">
           <div class="neo-identity reveal">
-            <p class="eyebrow">PERSONAL AI SYSTEM / PRODUCT CONCEPT</p>
+            <p class="eyebrow">PERSONAL AI AGENT / INTERACTIVE PROTOTYPE</p>
             <h2 id="neo-feature-title">NEO</h2>
           </div>
           <div class="neo-copy reveal">
             <p class="neo-lead">A quieter way to think alongside AI.</p>
-            ${arrowLink("/work#project-01", "View the study")}
+            ${arrowLink("/work#project-01", "View the project")}
           </div>
         </div>
       </section>
@@ -230,7 +233,7 @@ function workPage() {
         <p class="eyebrow">Selected work</p>
         <h1 id="page-heading">IDEAS, MADE<br /><span>CONSIDERED.</span></h1>
         <div class="page-hero-lower">
-          <p>A personal AI product concept, an editorial website concept and a map-led information study.</p>
+          <p>A personal AI agent prototype, an editorial website concept, an academic productivity platform and a company website.</p>
         </div>
       </section>
       ${selectedWork()}
@@ -381,7 +384,7 @@ const LEGAL_CONTENT = {
     sections: [
       ["About Avenox Studio", "This website is operated by [legal business name], of [registered business address]. Replace these placeholders with the correct legal details."],
       ["Using this website", "You may browse this website for lawful purposes. Do not misuse the site, attempt to disrupt it, or use its content in a way that infringes another person's rights."],
-      ["Website content", "Copyright, licensing and use permissions for the website's text, design and imagery must be confirmed by the business before publication. Project names and illustrative interface visuals are shown as editorial explorations; they do not represent endorsements or performance claims. Confirm ownership and permissions for all final materials before launch."],
+      ["Website content", "Copyright, licensing and use permissions for the website's text, design and imagery must be confirmed by the business before publication. Project screenshots are captured from the named projects' own source code and may show demo or prototype data; a project without a screenshot is marked as pending. Project names and visuals are shown as portfolio work and do not represent endorsements or performance claims. Confirm ownership and permissions for all final materials before launch."],
       ["No professional or project advice", "Website content is general information, not legal, financial or technical advice for a particular situation. A project relationship, scope, fees and responsibilities exist only when agreed separately in writing."],
       ["Availability and liability", "The site is provided as available. Any limitations of liability, warranties or consumer rights must be written to comply with the law that applies to the business and visitor. Obtain local legal review before using this draft: [jurisdiction and legal wording to be supplied]."],
       ["Governing law and contact", "Governing law, venue and dispute process: [insert applicable jurisdiction after legal review]. Questions about these terms: [business contact email]. Last reviewed: [date to be added]."],

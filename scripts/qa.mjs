@@ -209,7 +209,7 @@ for (const [route, expectedHeading] of expectedHeadings) {
     assert.match(match[1], /\bheight="\d+"/, `${route}: image needs intrinsic height to limit layout shift`);
     assert.match(match[1], /\bdecoding="async"/, `${route}: image should decode asynchronously`);
     const src = match[1].match(/\bsrc="([^"]+)"/)?.[1];
-    assert.ok(src?.startsWith("/images/"), `${route}: image source should be same-origin`);
+    assert.ok(src?.startsWith("/images/") || src?.startsWith("/projects/"), `${route}: image source should be same-origin`);
     await access(path.join(dist, src.slice(1)));
   }
 
@@ -242,16 +242,23 @@ assert.match(renderedAbout, /<article class="principle reveal"><h3>/, "Studio pr
 
 const renderedWork = renderWithBrowserStubs("/work").app.innerHTML;
 const neoProject = PROJECTS.find((project) => project.name === "NEO");
-const atlasResearch = PROJECTS.find((project) => project.name === "ATLAS RESEARCH");
-assert.equal(neoProject?.kind, "Personal AI system / product", "NEO should be classified accurately as a personal AI system / product");
-assert.match(neoProject?.description || "", /concept/i, "NEO must be described as a concept rather than a launched product");
-assert.match(neoProject?.visualLabel || "", /illustrative/i, "NEO's interface concept must be identified as illustrative");
-assert.match(neoProject?.alt || "", /not a product screenshot/i, "NEO's alt text must not imply a real screenshot");
-assert.match(renderedWork, /Personal AI system \/ product/, "NEO's project type should be visible in the archive");
+const silentAtlas = PROJECTS.find((project) => project.name === "THE SILENT ATLAS");
+const atlasProject = PROJECTS.find((project) => project.name === "ATLAS");
+const nexoraProject = PROJECTS.find((project) => project.name === "NEXORA");
+for (const project of [neoProject, atlasProject, nexoraProject]) {
+  assert.ok(project?.image?.startsWith("/projects/"), `${project?.name}: should use a verified real screenshot under /projects/`);
+  assert.match(project.visualLabel, /^Real project screenshot/, `${project.name}: real screenshots must be labelled as such`);
+  assert.doesNotMatch(`${project.visualLabel} ${project.alt}`, /illustrative|not a product screenshot/i, `${project.name}: real screenshots must not be called illustrative`);
+}
+assert.equal(silentAtlas?.image, null, "The Silent Atlas has no verified assets and must stay an honest placeholder");
+assert.match(silentAtlas?.visualLabel || "", /pending/i, "The Silent Atlas placeholder must say the screenshot is pending");
+assert.match(renderedWork, /SCREENSHOT PENDING/, "The pending placeholder should be visible in the work archive");
+assert.match(renderedWork, /Personal AI agent \/ interactive prototype/, "NEO's project type should be visible in the archive");
 assert.match(renderedWork, /Editorial website concept/, "Silent Atlas should be identified as a website concept");
-assert.equal(atlasResearch?.kind, "Information design study", "Atlas Research should be classified as an information-design study");
-assert.ok(!atlasResearch?.query.includes("service="), "Atlas Research should not be prefilled as a service it does not represent");
-assert.match(renderedWork, /Information design study/, "Atlas Research's project type should be visible in the archive");
+assert.match(renderedWork, /Academic productivity platform/, "Atlas's project type should be visible in the archive");
+assert.match(renderedWork, /Company website/, "NEXORA's project type should be visible in the archive");
+assert.ok(!renderedWork.includes("studio-desk"), "The generic studio desk image must not be used");
+for (const project of [neoProject, atlasProject, nexoraProject]) await access(path.join(dist, project.image.slice(1)));
 const staticWork = await readFile(path.join(dist, "work/index.html"), "utf8");
 for (const project of PROJECTS) {
   assert.ok(staticWork.includes(project.kind), `Static work fallback is missing the honest type for ${project.name}`);
@@ -260,7 +267,7 @@ for (const project of PROJECTS) {
 for (const layout of ["standard", "reverse", "asymmetric"]) {
   assert.ok(renderedWork.includes(`project-row--${layout}`), `Work archive is missing the ${layout} project composition`);
 }
-for (const label of ["Discuss NEO", "Discuss Silent Atlas", "Discuss map-led work"]) {
+for (const label of ["Discuss NEO", "Discuss Silent Atlas", "Discuss Atlas", "Discuss web work"]) {
   assert.ok(renderedWork.includes(label), `Work archive is missing the working ${label} action`);
 }
 assert.ok(renderedWork.includes('id="project-01"'), "NEO archive entry should expose the anchor used by its feature link");

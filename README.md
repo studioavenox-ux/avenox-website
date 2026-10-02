@@ -62,7 +62,7 @@ Vercel's static output uses the generated route-directory index files; `trailing
 
 ## Approved brand and imagery
 
-The approved favicon reuses the existing AVENOX mark; no replacement logo has been introduced. Open Graph and Twitter cards use `public/images/avenox-social.png` (1200 × 630). Its editable SVG source is kept in `public/images/avenox-social.svg` and intentionally excluded from `dist/`. Portfolio visuals are illustrative. NEO is a personal AI system/product concept; its interface artwork is an illustrative study, not a product screenshot.
+The approved favicon reuses the existing AVENOX mark; no replacement logo has been introduced. Open Graph and Twitter cards use `public/images/avenox-social.png` (1200 × 630). Its editable SVG source is kept in `public/images/avenox-social.svg` and intentionally excluded from `dist/`. Portfolio visuals are real screenshots captured from the actual projects (NEO, Atlas, NEXORA) and are stored in `public/projects/`; see `PORTFOLIO-ASSETS.md` for the source repository and capture method of each file. The Silent Atlas has no verified assets yet and shows a "screenshot pending" panel. Never add generated, stock or illustrative imagery to the portfolio; replace the pending panel only with a real capture.
 
 ## Contact form status
 
