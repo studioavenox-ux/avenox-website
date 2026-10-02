@@ -29,6 +29,13 @@ const decoded = (value) => value
 const siteOrigin = process.env.SITE_ORIGIN ? new URL(process.env.SITE_ORIGIN).origin : "";
 const routeUrl = (route) => `${siteOrigin}${route.path === "/" ? "/" : `${route.path}/`}`;
 const socialImageUrl = siteOrigin ? `${siteOrigin}/images/avenox-social.png` : "/images/avenox-social.png";
+const vercelConfig = JSON.parse(await readFile(path.join(root, "vercel.json"), "utf8"));
+assert.equal(vercelConfig.buildCommand, "npm run build", "Vercel should use the existing static build command");
+assert.equal(vercelConfig.outputDirectory, "dist", "Vercel should publish the generated static output");
+assert.equal(vercelConfig.trailingSlash, true, "Vercel route normalization should match the canonical paths");
+const environmentExample = await readFile(path.join(root, ".env.example"), "utf8");
+assert.match(environmentExample, /^SITE_ORIGIN=$/m, "Environment template should keep the unselected site origin blank");
+assert.doesNotMatch(environmentExample, /https?:\/\//, "Environment template must not invent or assume a domain");
 
 function assertBalancedMarkup(html, route) {
   const voidTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
@@ -123,7 +130,7 @@ assert.match(socialSvg, /Web • AI • Digital Systems/, "Social preview source
 assert.doesNotMatch(socialSvg, /studio|independent|contact|project|award|leading/i, "Social preview must not add promotional claims");
 
 const productionEntries = new Set(await readdir(dist));
-for (const devArtifact of [".git", "node_modules", "scripts", "src", "README.md", "package.json", ".env", ".env.production"]) {
+for (const devArtifact of [".git", "node_modules", "scripts", "src", "README.md", "package.json", "package-lock.json", "vercel.json", ".env", ".env.example", ".env.production"]) {
   assert.ok(!productionEntries.has(devArtifact), `Production output must not contain development-only artifact ${devArtifact}`);
 }
 const productionImages = new Set(await readdir(path.join(dist, "images")));
@@ -307,6 +314,7 @@ assert.match(contact, /aria-live="polite"/, "Contact success state should be ann
 assert.match(contact, /has no email or backend connection/, "Contact form must explain that delivery is not connected");
 assert.match(contact, /After preparation, copy or download the brief on this device/, "Contact form must explain what happens after preparation");
 assert.match(browserSource, /FORM DELIVERY INTEGRATION POINT/, "The future delivery integration point should be obvious in code");
+assert.match(browserSource, /Future delivery recipient: studioavenox@gmail\.com/, "The future server-side recipient should be documented at the integration point");
 assert.match(browserSource, /has <strong>not<\/strong> been sent or stored/, "Contact success state must clearly explain that the brief was not sent");
 assert.match(browserSource, /COPY BRIEF[\s\S]*DOWNLOAD BRIEF/, "Prepared brief should offer copy and download actions");
 assert.doesNotMatch(browserSource, /fetch\s*\(|XMLHttpRequest|mailto:/i, "Contact form should not imply or attempt delivery without a backend");

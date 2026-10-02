@@ -1,73 +1,90 @@
-# Avenox Studio website
+# AVENOX — Web • AI • Digital Systems
 
-AVENOX is a static, multi-page website built with semantic HTML, CSS and dependency-free JavaScript. The deployed site has no server-side runtime dependencies. Build and QA commands require Node.js 18 or newer.
+A static, multi-page AVENOX website built with semantic HTML, CSS and dependency-free JavaScript. The approved visual design and assets are unchanged. Build, local preview and QA require Node.js 18 or newer; there are no third-party runtime or development dependencies.
 
 ## Routes
 
-The build creates pages for `/`, `/work`, `/services`, `/about`, `/contact`, `/privacy`, `/cookies`, `/terms` and `/404`. It also writes a root `404.html` for unknown URLs. Configure the production host to serve route-directory index files and return `404.html` with an HTTP 404 status for unknown paths.
+The build creates all nine public pages: `/`, `/work`, `/services`, `/about`, `/contact`, `/privacy`, `/cookies`, `/terms` and `/404`. Each route is emitted as a directory `index.html`; the build also emits a root `404.html` for unknown URLs. The `/404` page is a normal, directly addressable page; an unknown URL should instead receive the host's 404 response and render the custom `404.html`.
 
-## Environment variables
-
-| Variable | Required where | Purpose |
-| --- | --- | --- |
-| `SITE_ORIGIN` | Required by `npm run build:production` | The final public HTTPS origin used for canonical URLs, Open Graph URLs and image URLs, `sitemap.xml`, and the sitemap line in `robots.txt`. |
-| `PORT` | Optional for the built-in local dev/preview server only | Overrides its port (defaults: 4173 for `npm run dev`, 4174 for `npm run preview`). It is not needed by the production build or a static host. |
-
-There are no other build or runtime environment variables. `SITE_ORIGIN` is public configuration, not a secret. Set it in the build environment—not as a browser-side setting—to the exact primary origin, such as `https://your-real-domain.example` (replace this placeholder with the real domain). Use HTTPS, choose the canonical apex or `www` host, and do not include a path, query or fragment. The production build rejects a missing origin, non-HTTPS origin, or origin containing a path/query/fragment. Rebuild if the canonical domain changes.
-
-The source uses root-relative routes and asset paths, so deploy the site at the origin root; subfolder deployment is not supported. A local build may omit `SITE_ORIGIN`, but that intentionally omits the sitemap and leaves canonical/social image URLs same-origin relative. Do not use that output as the final production build.
-
-## Deployment guide
-
-1. Choose the real domain and static hosting provider. Configure DNS and HTTPS using the records supplied by that provider; redirect any alternate host (for example, apex vs `www`) to the one canonical origin. No domain, DNS record, host or company detail is assumed here.
-2. In the host/CI **build environment**, set `SITE_ORIGIN` to the final canonical HTTPS origin, with no path, query or fragment. It is not a secret and must be available during the build.
-3. Build and verify with that same environment value:
-
-   ```sh
-   SITE_ORIGIN="https://your-real-domain.example" npm run qa
-   SITE_ORIGIN="https://your-real-domain.example" npm run build:production
-   ```
-
-   Replace the example origin before running these commands. `npm run qa` rebuilds the site and checks the generated pages, metadata, asset references, legal placeholders and contact flow; `build:production` then creates the final `dist/` output and requires HTTPS `SITE_ORIGIN`.
-4. Publish the **contents of `dist/`**, not the repository, at the domain root. The host must resolve `/work` and `/work/` (and the other route directories) to their generated `index.html` files, serve the root `404.html` for unknown paths with status 404, and serve the generated `robots.txt` and `sitemap.xml`.
-5. After DNS and HTTPS are live, smoke-test every route, the favicon, `/images/avenox-social.png`, project images, `/assets/main.js`, `/assets/styles.css`, canonical URLs, the share preview and an unknown URL. The local production-output server is available with `npm run preview` (default port 4174; `PORT` can override it).
-
-`SITE_ORIGIN` creates absolute canonical/Open Graph URLs and the sitemap. The sitemap intentionally omits `/404`. A deployment is not ready for public launch until the real domain is known, DNS/HTTPS are configured, and the final build is produced with that domain.
-
-## Local development and QA
+## Local development and verification
 
 ```sh
-npm run dev
+npm ci
 npm run qa
 npm run build
-npm run preview
 ```
 
-The build is self-contained in `dist/`; development server/build/QA scripts, repository metadata, `node_modules`, and the editable social-card SVG source are not shipped. `dist/` and `node_modules/` are ignored by Git. The QA command performs static route/asset checks and client-renderer tests with browser stubs; it does not replace a real-browser visual, console, accessibility or production-host smoke test.
+To serve the site locally, run either command in its own terminal; each server stays running until stopped:
 
-The favicon reuses the approved A mark. Open Graph and Twitter metadata use the 1200 × 630 PNG at `public/images/avenox-social.png`; its editable SVG source is `public/images/avenox-social.svg` and is intentionally excluded from the production output. Portfolio imagery is illustrative. NEO is a personal AI system / product concept; its interface art is an illustrative study, not a product screenshot.
+```sh
+npm run dev      # source-based development server, default port 4173
+npm run preview  # static dist/ preview, default port 4174
+```
 
-## Contact form: what is required for email delivery
+`npm ci` installs from the committed lockfile (there are currently no packages to install). Both servers accept an optional `PORT` override. `npm run qa` rebuilds `dist/` and checks generated routes, metadata, links and assets, accessibility-related markup, responsive CSS, the mobile-menu behavior, and contact-form behavior using browser stubs. It is not a substitute for a real-browser visual/console check or a deployed-host smoke test. The repository has no configured lint tool; syntax checks can be run without extra packages with `node --check` on the JavaScript files.
 
-The current contact form validates the required fields and prepares a brief in the visitor's browser. It does **not** transmit or store the details; the visitor can copy or download the brief on that device. No email address, email provider, backend endpoint, API key, or contact-related environment variable has been configured.
+The build output is `dist/`. It excludes source scripts, repository documentation and the editable social-card SVG source. `dist/` and `node_modules/` are ignored by Git.
 
-To enable real delivery, the business still needs to choose an email provider and deploy a server-side or serverless endpoint. Add server-side validation, spam/rate-limit protections, safe error handling and appropriate data-retention controls. Connect the form at the `FORM DELIVERY INTEGRATION POINT` in `src/main.js`; keep provider credentials in the backend/host's private environment and never expose them in browser JavaScript. Only show a sent/success state after the endpoint confirms delivery. Update the privacy/cookie disclosures to describe the selected provider and data handling. The environment variable names/secrets depend on the provider and have deliberately not been invented.
+## Environment variables and SEO origin
 
-## Legal details to replace before publication
-
-The Privacy, Cookies and Terms pages visibly retain placeholders. Replace each with verified information supplied by the actual business, and obtain review for the applicable jurisdictions before publication:
-
-| Placeholder | Page(s) | Real information required |
+| Variable | Where it is used | Purpose |
 | --- | --- | --- |
-| `[legal business name]` | Privacy, Terms | The legal entity/person responsible for the site and the correct contracting/operator identity. |
-| `[registered business address]` | Privacy, Terms | The actual registered or service address required for the business and applicable law. |
-| `[privacy contact email]` | Privacy, Cookies | A monitored privacy/data-rights contact address. |
-| `[business contact email]` | Terms | A monitored business contact address for terms-related questions. |
-| `[add hosting and retention details]` | Privacy | Actual hosting/log providers, data collected, retention period, legal basis and applicable safeguards. |
-| `[complete before launch]` | Privacy | Jurisdiction-specific rights, request process, legal bases, retention details and supervisory authority, confirmed by counsel/operator. |
-| `[add provider and cookie details if applicable]` | Cookies | Actual hosting/third-party services, cookies or similar storage they use, purpose/lifetime, and any required consent controls. Verify against the live deployment. |
-| `[jurisdiction and legal wording to be supplied]` | Terms | Reviewed jurisdiction-specific warranty, liability and consumer-rights language. |
-| `[insert applicable jurisdiction after legal review]` | Terms | Confirmed governing law, venue and dispute process. |
-| `[date to be added]` | Privacy, Cookies, Terms | The real date each policy was last reviewed and approved. |
+| `SITE_ORIGIN` | Build-time; required by `npm run build:production` | The selected canonical public HTTPS origin. Used for absolute canonical/Open Graph URLs, the sitemap, and the sitemap entry in `robots.txt`. |
+| `PORT` | Optional, local dev/preview server only | Overrides the local server port (defaults to 4173 for `dev`, 4174 for `preview`). It is not used by the static production output. |
 
-Also confirm ownership and usage rights for the site's text, project names and every visual asset; the Terms page calls this out separately from its bracketed fields. No legal entity, address, email, hosting provider, jurisdiction, domain or email backend has been assumed.
+No other project environment variables are read. `SITE_ORIGIN` is public configuration, not a secret; it must be the exact origin only (HTTPS, no path, query or fragment). Keep it blank until the real domain and canonical host are chosen. `.env.example` is a blank reference template and is **not** auto-loaded by these Node scripts. Do not add credentials or a guessed domain to it.
+
+`npm run build` can run with `SITE_ORIGIN` unset, but intentionally leaves canonical/social URLs relative and does not generate a sitemap. Do not publish that output as the final production build. Once the real origin is selected, set `SITE_ORIGIN` in the production build environment and run:
+
+```sh
+SITE_ORIGIN="https://<selected-canonical-origin>" npm run build:production
+SITE_ORIGIN="https://<selected-canonical-origin>" npm run qa
+```
+
+Replace the quoted placeholder with the actual origin before running either command. The strict production build rejects a missing or invalid origin. Rebuild if the canonical host changes. The site uses root-relative routes and asset URLs, so deployment at a subpath is not supported.
+
+## Vercel deployment
+
+The repository includes a minimal `vercel.json` for the existing static build:
+
+- Build command: `npm run build`
+- Output directory: `dist`
+- `trailingSlash: true`, matching the site's trailing-slash canonical paths and generated route directories
+
+To deploy:
+
+1. Import this repository as a Vercel project, use the repository root as the project root, and select the **Other** framework preset (this is not a framework app). Keep the build and output settings from `vercel.json`; no rewrite, API function, or extra package is required.
+2. After choosing the real production domain and canonical host, add `SITE_ORIGIN` under the Vercel project's **Production** environment variables as the exact HTTPS origin. Do not substitute a Vercel preview URL or a guessed domain. Without it the static build can complete, but production canonical/social metadata and the sitemap will be incomplete.
+3. Deploy, add the selected domain in Vercel, and configure DNS and HTTPS using the records Vercel provides for that domain. Redirect any alternate host to the chosen canonical host. No domain or DNS record is specified in this repository.
+4. After deployment, verify each route, its canonical URL and assets, and confirm that an unknown URL returns HTTP 404 with the custom `404.html`. Confirm that `/robots.txt` and `/sitemap.xml` use the selected origin. The `/404` route itself should remain directly reachable and noindexed.
+
+Vercel's static output uses the generated route-directory index files; `trailingSlash: true` normalizes extensionless public routes to the canonical slash form. The site is static and does not require a server runtime after deployment. The production sitemap omits `/404`.
+
+## Approved brand and imagery
+
+The approved favicon reuses the existing AVENOX mark; no replacement logo has been introduced. Open Graph and Twitter cards use `public/images/avenox-social.png` (1200 × 630). Its editable SVG source is kept in `public/images/avenox-social.svg` and intentionally excluded from `dist/`. Portfolio visuals are illustrative. NEO is a personal AI system/product concept; its interface artwork is an illustrative study, not a product screenshot.
+
+## Contact form status
+
+The form validates the required fields and prepares a brief locally in the visitor's browser. It does **not** send or store the details; visitors can copy or download the brief on their own device. No email provider, backend endpoint, API key, delivery credentials or contact-related environment variable is configured.
+
+The intended future recipient is **studioavenox@gmail.com**; that address is not connected to the current form and no email is sent there. The documented `FORM DELIVERY INTEGRATION POINT` is in `submitInquiry` in `src/main.js`. When an email provider is selected, connect a verified server-side endpoint there; keep provider credentials on the server, add validation and spam/rate-limit protections, and only report delivery after the endpoint confirms it. Update the privacy/cookie disclosures to match the actual provider and data handling. Do not send messages directly from client-side JavaScript.
+
+## Launch tasks still requiring verified information
+
+The Privacy, Cookies and Terms pages intentionally retain visible placeholders. Replace them with details supplied and approved by the responsible business, and obtain jurisdiction-appropriate review before publication:
+
+| Placeholder | Page(s) | Information to confirm |
+| --- | --- | --- |
+| `[legal business name]` | Privacy, Terms | Correct legal operator/contracting identity. |
+| `[registered business address]` | Privacy, Terms | Actual address required for the business and applicable law. |
+| `[privacy contact email]` | Privacy, Cookies | Monitored privacy/data-rights contact. |
+| `[business contact email]` | Terms | Monitored business contact for terms questions. |
+| `[add hosting and retention details]` | Privacy | Actual host/log providers, collected data, retention, legal basis and safeguards. |
+| `[complete before launch]` | Privacy | Applicable rights, request process, legal bases, retention details and supervisory authority. |
+| `[add provider and cookie details if applicable]` | Cookies | Actual hosting/third-party services, cookies or similar storage, purposes/lifetimes, and required consent controls. |
+| `[jurisdiction and legal wording to be supplied]` | Terms | Reviewed jurisdiction-specific warranty, liability and consumer-rights wording. |
+| `[insert applicable jurisdiction after legal review]` | Terms | Confirmed governing law, venue and dispute process. |
+| `[date to be added]` | Privacy, Cookies, Terms | Actual review and approval dates. |
+
+Before launch, also confirm rights to the site's text, project names and every visual asset. Select the real domain/canonical host, configure DNS and HTTPS, build with its `SITE_ORIGIN`, and complete the post-deploy route, 404, asset and SEO checks. Email delivery remains a separate, optional backend integration and is not active in this version.

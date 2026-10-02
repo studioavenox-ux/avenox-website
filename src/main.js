@@ -550,8 +550,9 @@ function submitInquiry(form) {
   }
 
   // FORM DELIVERY INTEGRATION POINT: replace this local brief-preparation flow
-  // only when a verified endpoint and its privacy process are configured.
-  // Until then, the contact form intentionally stays on this device.
+  // with a verified server-side endpoint only after a provider is explicitly configured.
+  // Future delivery recipient: studioavenox@gmail.com. Keep credentials server-side;
+  // until then, the contact form intentionally stays on this device.
   const formData = new FormData(form);
   const labels = [
     ["Name", formData.get("name")],
