@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PROJECTS, ROUTES, SERVICES } from "../src/site-data.js";
@@ -10,7 +10,12 @@ const productionBuild = process.argv.includes("--production");
 
 function safeOrigin(input) {
   if (!input) return "";
-  const parsed = new URL(input);
+  let parsed;
+  try {
+    parsed = new URL(input);
+  } catch {
+    throw new Error("SITE_ORIGIN is not a valid URL; use an exact origin such as https://example.com.");
+  }
   if (!/^https?:$/.test(parsed.protocol)) throw new Error("SITE_ORIGIN must use http:// or https://");
   if (parsed.username || parsed.password) throw new Error("SITE_ORIGIN must not contain credentials");
   if (parsed.pathname !== "/" || parsed.search || parsed.hash) throw new Error("SITE_ORIGIN must be an origin without a path, query or hash");
@@ -62,7 +67,19 @@ function staticFallback(route) {
 
 await rm(output, { recursive: true, force: true });
 await mkdir(path.join(output, "assets"), { recursive: true });
-await cp(path.join(root, "public"), output, { recursive: true });
+// Only intentionally public asset types are published. Dotfiles (.env, .DS_Store, ...) and any
+// other file type that ends up under public/ are skipped, so nothing private can ship by accident.
+const publicFileTypes = new Set([".css", ".ico", ".jpeg", ".jpg", ".png", ".svg", ".txt", ".webp", ".xml"]);
+const publicRoot = path.join(root, "public");
+await cp(publicRoot, output, {
+  recursive: true,
+  filter: async (source) => {
+    const name = path.basename(source);
+    if (name.startsWith(".")) return false;
+    if ((await stat(source)).isDirectory()) return true;
+    return publicFileTypes.has(path.extname(name).toLowerCase());
+  },
+});
 // The SVG is the editable social-card source; production metadata uses the PNG.
 await rm(path.join(output, "images", "avenox-social.svg"), { force: true });
 
@@ -104,6 +121,11 @@ function pageHtml(route) {
     html = html.replace(existingOgUrl[0], `<meta property="og:url" content="${canonical}" />`);
   } else {
     html = html.replace("<meta property=\"og:site_name\" content=\"Avenox Studio\" />", `<meta property="og:site_name" content="Avenox Studio" />\n    <meta property="og:url" content="${canonical}" />`);
+  }
+
+  // Only the home page shows the hero image, so only it preloads it (avoids an unused-preload warning elsewhere).
+  if (route.path === "/") {
+    html = html.replace('<link rel="stylesheet"', '<link rel="preload" as="image" href="/projects/neo/neo-command-center-desktop.webp" fetchpriority="high" />\n    <link rel="stylesheet"');
   }
 
   const fallback = staticFallback(route);
