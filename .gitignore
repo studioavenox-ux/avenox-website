@@ -6,3 +6,11 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Local tooling output and anything that could carry credentials.
+.vercel/
+*.log
+*.pem
+*.key
+*.p12
+*.pfx

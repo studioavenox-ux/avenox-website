@@ -11,6 +11,6 @@
     "qa": "npm run build && node scripts/qa.mjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   }
 }
